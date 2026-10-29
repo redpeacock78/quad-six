@@ -12,11 +12,18 @@
 @media(max-width:670px){.app-shell{padding:14px 12px 26px}.masthead{padding-bottom:12px}.brand-symbol{width:37px;height:37px;font-size:22px}.brand-text{font-size:18px}.brand-sub{font-size:8px}.header-actions{gap:5px}.button.tight{padding:8px;font-size:10px}.intro{grid-template-columns:1fr;min-height:0;padding:35px 0 0;gap:0}.intro h1{font-size:52px}.intro .lead{font-size:14px}.intro-visual{min-height:280px;margin-top:15px}.intro-mandala{width:240px;height:240px}.intro-title .kanji{font-size:77px}.intro-domino:nth-of-type(2){left:6%;top:9%}.intro-domino:nth-of-type(3){right:6%;top:9%}.intro-domino:nth-of-type(4){left:6%;bottom:11%}.intro-domino:nth-of-type(5){right:6%;bottom:11%}.intro-visual .domino.large{width:83px;height:43px}.game-layout{margin-top:12px;gap:12px}.main-column,.side-column{gap:12px}.side-column{display:flex;flex-direction:column}.playmat{min-height:266px}.mat-heading{padding:17px}.mat-footer{padding:12px 15px}.board-holder{padding:15px 12px;min-height:155px}.board-strip{gap:5px}.board-group{gap:4px}.domino{width:67px;height:36px;padding:3px}.pip{width:4px;height:4px}.root-joint{width:17px}.edge-marker{min-width:30px;height:30px;font-size:16px}.hand-strip{gap:4px;padding:17px 8px 16px}.hand-strip .domino{width:64px;height:39px;padding:3px}.hand-strip .tile-wrap{min-width:64px}.tile-wrap{min-width:64px}.tile-wrap .flip-control{width:23px;height:23px;top:-9px;right:-3px}.panel-pad,.action-area{padding:15px}.move-options{grid-template-columns:1fr}.modal{max-height:90dvh}.subfoot{flex-direction:column}.intro-feature{gap:12px;flex-wrap:wrap}.intro-actions .button{flex:1}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
 
+
+/* Multi-game match UI */
+.format-picker{margin:20px 0 8px;max-width:560px}.format-buttons{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}.format-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:120px;gap:4px;border-color:#557467}.format-choice small{font-size:11px;color:var(--muted)}.format-choice.chosen{background:#dcb778;color:#15342c;border-color:#e6c891;font-weight:800}.format-choice.chosen small{color:#30594a}.match-points{display:grid;grid-template-columns:1fr 1fr;gap:10px}.match-points>div{border:1px solid #547864;background:#153c30;border-radius:9px;padding:12px 15px;display:flex;flex-direction:column;gap:5px}.match-points small{color:#c1d4c4;font-size:11px}.match-points strong{font-size:27px;color:var(--gold2);font-variant-numeric:tabular-nums}.settlement{margin-top:18px;padding:16px;border-radius:10px;border:1px solid #5d8069;background:#102e27}.settlement>span{display:block;color:var(--gold2);font-size:13px;font-weight:800;margin-bottom:12px}.match-panel .drawer{margin-top:12px}@media(max-width:670px){.format-choice{flex:1;min-width:88px}.format-buttons{gap:5px}.match-points strong{font-size:23px}}
+
 </style>
   <title>賽棋 / Quad6 — 二人で競う、五十六の選択。</title>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app" role="status" aria-live="polite">
+    <p style="padding:2rem;color:#f3f0e5;text-align:center">賽棋（Quad6）を読み込み中…</p>
+    <p style="color:#a9bfb3;text-align:center">表示が変わらない場合はページを再読み込みしてください</p>
+  </div>
   <script type="module">
 // ---- engine.js ----
 /** 賽棋 Quad6 — dependency-free, deterministic rule engine. */
@@ -116,7 +123,8 @@ function beginRound(game) {
   game.current = game.lead;
   game.rounds.push({ round: game.round, role: [0, 0], pips: [0, 0], honba: [0, 0] });
 }
-function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now() } = {}) {
+function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now(), startingPlayer = 0 } = {}) {
+  assert(startingPlayer === 0 || startingPlayer === 1, '先手は0か1');
   assert(initialHand >= 2 && initialHand <= 16, '初期手札は2〜16枚');
   const tiles = tileset();
   const stock = tiles.map(t => t.id);
@@ -125,7 +133,7 @@ function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now() } = {}) {
   for (let i = 0; i < initialHand; i++) for (let p = 0; p < 2; p++) hands[p].push(stock.pop());
   const game = {
     version: 3, mode, seed, tiles, stock, hands,
-    discard: [], board: null, current: 0, lead: 0, phase: 'opening', round: 1,
+    discard: [], board: null, current: startingPlayer, lead: startingPlayer, phase: 'opening', round: 1,
     final: false, finalOut: [false, false], lastDrawBy: null, lastDrawExempt: false,
     openingRole: null, honba: 0, lastOverwriter: null, passStreak: 0,
     scores: [0, 1].map(() => ({ role: 0, pips: 0, honba: 0, early: 0, lastDraw: 0, remaining: 0 })),
@@ -412,6 +420,7 @@ function dispatch(game, action) {
 
 // ---- ai.js ----
 
+
 /** An intentionally readable starter opponent, not an optimal solver. */
 function chooseAIAction(game) {
   const p = game.current, hand = game.hands[p];
@@ -466,10 +475,70 @@ function chooseAIAction(game) {
   return null;
 }
 
+// ---- match.js ----
+/** Multi-game match: keeps the 56-tile game rules unchanged. */
+
+const MATCH_FORMATS = Object.freeze({
+  single: { label: '一局戦', games: 1 },
+  tonpu: { label: '東風戦', games: 4 },
+  hanchan: { label: '半荘戦', games: 8 }
+});
+const STARTING_POINTS = 250;
+
+function createMatch({ format = 'single', mode = 'cpu', seed = Date.now(), initialHand = 9 } = {}) {
+  if (!MATCH_FORMATS[format]) throw new Error('未対応の対局形式です');
+  if (!['cpu', 'local'].includes(mode)) throw new Error('未対応の対戦モードです');
+  return {
+    format, mode, initialHand, totalGames: MATCH_FORMATS[format].games,
+    gameNumber: 1, points: [STARTING_POINTS, STARTING_POINTS],
+    history: [], settled: false, complete: false,
+    game: newGame({ mode, seed, initialHand, startingPlayer: 0 })
+  };
+}
+
+/** Each game's *difference* is transferred; the total point pool stays at 500. */
+function settleMatchGame(match) {
+  if (match.game.phase !== 'finished') throw new Error('ゲームがまだ終了していません');
+  if (match.settled) return match.history.at(-1);
+  const scores = [totalScore(match.game, 0), totalScore(match.game, 1)];
+  const delta = scores[0] - scores[1];
+  match.points[0] += delta;
+  match.points[1] -= delta;
+  const record = {
+    game: match.gameNumber, scores, delta,
+    points: [...match.points],
+    winner: delta === 0 ? null : delta > 0 ? 0 : 1,
+    reason: match.game.endReason
+  };
+  match.history.push(record);
+  match.settled = true;
+  match.complete = match.gameNumber === match.totalGames;
+  return record;
+}
+
+function nextMatchGame(match, seed = Date.now()) {
+  if (!match.settled) throw new Error('現在のゲームが終了していません');
+  if (match.complete) throw new Error('対局はすでに終了しています');
+  match.gameNumber++;
+  match.game = newGame({ mode: match.mode, initialHand: match.initialHand, seed,
+    startingPlayer: (match.gameNumber - 1) % 2 });
+  match.settled = false;
+  return match.game;
+}
+
+function matchWinner(match) {
+  if (!match.complete) return null;
+  return match.points[0] === match.points[1] ? null : match.points[0] > match.points[1] ? 0 : 1;
+}
+
 // ---- ui.js ----
+
 
 const $app = document.getElementById('app');
 let game = null;
+let match = null;
+let selectedFormat = 'single';
+let cpuTimer = null;
 let selected = [];
 let flipped = {};
 let helpOpen = false;
@@ -560,10 +629,17 @@ function phaseLabel() {
 function scoreCard(p) {
   return `<div class="score-person ${game.current===p&&game.phase!=='finished'?'active':''}"><div><div class="player-name">${p===0?'◈':'◇'} ${nameOf(p)} ${game.finalOut[p]?'· 脱落':''}</div><div class="player-detail">手札 ${game.hands[p].length}枚 / 役 ${game.scores[p].role} / 付札等 ${game.scores[p].pips}</div></div><div class="points">${totalScore(game,p)}</div></div>`;
 }
+function matchPanel() {
+  if (!match) return '';
+  return `<section class="panel match-panel"><div class="side-section"><div class="side-title"><h3>${MATCH_FORMATS[match.format].label} · 第${match.gameNumber}/${match.totalGames}ゲーム</h3><span class="small-label">持ち点 ${STARTING_POINTS}点開始</span></div>
+    <div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div>
+    <p class="footnote">ゲーム終了時に得点差を移動 · 現在のゲームの得点は下の得点ボードに表示</p>
+    ${match.history.length?`<details class="drawer"><summary>対局履歴（${match.history.length}ゲーム）</summary><table class="ledger"><thead><tr><th>ゲーム</th><th>得点差</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${match.history.map(r=>`<tr><td>${r.game}</td><td>${r.delta>0?'+':''}${r.delta}</td><td>${r.points[0]}</td><td>${r.points[1]}</td></tr>`).join('')}</tbody></table></details>`:''}</div></section>`;
+}
 function sideMarkup() {
   const rows = game.rounds.map(r => `<tr><td>第${r.round}局</td><td>${r.role[0]+r.pips[0]+r.honba[0]}</td><td>${r.role[1]+r.pips[1]+r.honba[1]}</td></tr>`).join('');
   const closed = game.discard.slice(-10).reverse();
-  return `<aside class="side-column">
+  return `<aside class="side-column">${matchPanel()}
   <section class="panel"><div class="side-section"><div class="side-title"><h3>得点ボード</h3><span class="small-label">SCORE</span></div>${scoreCard(0)}${scoreCard(1)}<div class="round-lbl">※ 終局時にボーナス・残牌点を精算するよ</div></div>
   <div class="side-section"><div class="side-title"><h3>進行状況</h3></div><div class="side-stats"><div class="statbox"><div class="number">${game.stock.length}</div><div class="label">山札</div></div><div class="statbox"><div class="number">${game.discard.length}</div><div class="label">公開除外</div></div><div class="statbox"><div class="number">${game.honba}</div><div class="label">本場</div></div></div>
   <details class="drawer"><summary>局別スコアと内訳を表示</summary><table class="ledger"><thead><tr><th>局</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${rows}<tr class="total"><td>累計</td><td>${totalScore(game,0)}</td><td>${totalScore(game,1)}</td></tr></tbody></table><p class="footnote">本場は最終上書き者が総取り · 調整中の得点は含まれないよ</p></details>
@@ -584,15 +660,16 @@ function gameMarkup() {
    </div>${sideMarkup()}</section>`;
 }
 function headerMarkup() {
-  return `<header class="masthead"><div class="brand"><div class="brand-symbol">賽</div><div><div class="brand-text">賽棋 <span style="font-size:13px;color:var(--gold);letter-spacing:.05em">QUAD6</span></div><div class="brand-sub">THE DOMINO STRATEGY GAME</div></div></div><div class="header-actions">${game?`<span class="pill">${game.mode==='cpu'?'VS CPU':'LOCAL 2P'}</span>`:''}<button class="button quiet tight" data-action="help">ルール</button>${game?'<button class="button tight" data-action="restart">新しい対局</button>':''}</div></header>`;
+  return `<header class="masthead"><div class="brand"><div class="brand-symbol">賽</div><div><div class="brand-text">賽棋 <span style="font-size:13px;color:var(--gold);letter-spacing:.05em">QUAD6</span></div><div class="brand-sub">THE DOMINO STRATEGY GAME</div></div></div><div class="header-actions">${game?`<span class="pill">${MATCH_FORMATS[match.format].label} · ${game.mode==='cpu'?'VS CPU':'LOCAL 2P'}</span>`:''}<button class="button quiet tight" data-action="help">ルール</button>${game?'<button class="button tight" data-action="restart">新しい対局</button>':''}</div></header>`;
 }
 function introDomino(a,b,extra='') { return `<div class="intro-domino" ${extra}>${dominoMarkup(a,b,{large:true})}</div>`; }
 function homeMarkup(){
-  return `<main class="intro"><div class="intro-copy"><span class="eyebrow">A GAME OF FIFTY-SIX TILES</span><h1>二人で競う。<br><em>五十六の選択。</em></h1><p class="lead">天九の「役」と、ドミノの「接続」。<br>上書きで競り、牌を繋ぎ、山の行方を読む。<br>道具は56枚のドミノと紙と鉛筆だけ。<br>古くて新しい、2人用の知略ゲーム。</p><div class="intro-actions"><button class="button primary large" data-action="start-cpu">CPUと対戦する →</button><button class="button large" data-action="start-local">同じ端末で2人対戦</button></div><div class="intro-feature"><div><b>56</b>DOMINO TILES</div><div><b>9</b>STARTING HAND</div><div><b>2</b>PLAYERS</div><div><b>0</b>INSTALL REQUIRED</div></div></div><div class="intro-visual"><div class="intro-mandala"></div>${introDomino(6,6)}${introDomino(0,0)}${introDomino(5,3)}${introDomino(2,4)}<div class="intro-title"><div class="kanji">賽棋</div><div class="roman">QUAD6</div><div class="intro-foot">A WAR OF WITS</div></div></div></main>`;
+  return `<main class="intro"><div class="intro-copy"><span class="eyebrow">A GAME OF FIFTY-SIX TILES</span><h1>二人で競う。<br><em>五十六の選択。</em></h1><p class="lead">天九の「役」と、ドミノの「接続」。<br>上書きで競り、牌を繋ぎ、山の行方を読む。<br>道具は56枚のドミノと紙と鉛筆だけ。<br>古くて新しい、2人用の知略ゲーム。</p><div class="format-picker" role="group" aria-label="対局形式"><span class="eyebrow">対局形式を選択</span><div class="format-buttons">${Object.entries(MATCH_FORMATS).map(([id, f])=>`<button class="button format-choice ${selectedFormat===id?'chosen':''}" data-action="select-format" data-format="${id}" aria-pressed="${selectedFormat===id}">${f.label}<small>${f.games}ゲーム</small></button>`).join('')}</div><p class="help-text">初期持ち点は各250点 · 各ゲームの得点差を移動 · 先手はゲームごとに交代</p></div><div class="intro-actions"><button class="button primary large" data-action="start-cpu">CPUと対戦する →</button><button class="button large" data-action="start-local">同じ端末で2人対戦</button></div><div class="intro-feature"><div><b>56</b>DOMINO TILES</div><div><b>9</b>STARTING HAND</div><div><b>2</b>PLAYERS</div><div><b>0</b>INSTALL REQUIRED</div></div></div><div class="intro-visual"><div class="intro-mandala"></div>${introDomino(6,6)}${introDomino(0,0)}${introDomino(5,3)}${introDomino(2,4)}<div class="intro-title"><div class="kanji">賽棋</div><div class="roman">QUAD6</div><div class="intro-foot">A WAR OF WITS</div></div></div></main>`;
 }
 function helpMarkup() {
   const examples = MARTIAL.map(([name, a, b]) => `<tr><td>${name}</td><td>[${a.split('-').join('｜')}] + [${b.split('-').join('｜')}]</td></tr>`).join('');
   return `<div class="overlay" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-label="ルールブック"><span class="eyebrow">HOW TO PLAY · VER 0.3</span><h2>賽棋のあそびかた</h2><p>2人に9枚ずつ配ってスタート · 役を作って場に出し、その後は数字を繋ぐ · 手札をなくすか山札が尽きたら精算するよ</p>
+  <h3>対局形式と持ち点</h3><p>一局戦＝1ゲーム、東風戦＝4ゲーム、半荘戦＝8ゲーム。各250点から開始し、各ゲーム終了時に（自分の得点－相手の得点）の差を持ち点として移動するよ。ゲームごとに56枚を混ぜ直し、先手を交代するよ。全ゲーム終了後の持ち点が高い方の勝ち。飛び終了はなしだよ。</p>
   <h3>① 平場：天九</h3><p>先攻が2枚で役を出し、相手はより強い役で上書きできるよ · 上書きされた牌は公開除外されるけど、得点は残る · 上書きが終わったら最後の役を起点に付札へ進むよ · 本場は最後の上書き者が総取りだよ</p>
   <table class="mini-table"><tr><th>階級</th><th>役</th><th>役点</th></tr><tr><td>最高</td><td>至尊 [6｜6] + [0｜0]</td><td>20</td></tr><tr><td>上</td><td>文牌：同じ牌2枚</td><td>15</td></tr><tr><td>中</td><td>武牌：次の指定9組</td><td>10</td></tr><tr><td>下</td><td>雑：その他の2枚</td><td>5</td></tr></table>
   <h3>武牌9種の役表</h3><table class="mini-table"><tr><th>役</th><th>2枚組</th></tr>${examples}</table>
@@ -606,10 +683,18 @@ function helpMarkup() {
 }
 function endMarkup() {
   const scores = [totalScore(game,0),totalScore(game,1)];
-  const winner = scores[0]===scores[1]?null:scores[0]>scores[1]?0:1;
+  const record = match?.history.at(-1);
+  const isComplete = Boolean(match?.complete);
+  const winner = isComplete ? matchWinner(match) : record?.winner;
   const itemRows = ['role','pips','honba','early','lastDraw','remaining'];
   const labels = {role:'役点',pips:'ピップ点',honba:'本場点',early:'早アガリ',lastDraw:'山枯らし減点',remaining:'残牌減点'};
-  return `<div class="overlay"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">GAME SET · FINAL SCORE</span><h2>${winner===null?'引き分け！':`${nameOf(winner)}の勝利！`}</h2><p>${game.endReason==='early'?'早アガリで終局 · 総得点を精算したよ':'山札が尽きて最終出牌終了 · 総得点を精算したよ'}</p><div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div><table class="mini-table"><tr><th>内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>合計</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table><div class="modal-actions"><button class="button primary large" data-action="play-again">もう一戦！</button><button class="button quiet" data-action="back-home">タイトルへ</button></div></div></div>`;
+  return `<div class="overlay"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">${isComplete?'MATCH SET · FINAL STANDINGS':'GAME SET · SCORE SETTLEMENT'}</span><h2>${isComplete?(winner===null?'対局終了 · 引き分け！':`${nameOf(winner)}の総合勝利！`):`第${match.gameNumber}ゲーム終了`}</h2>
+  <p>${game.endReason==='early'?'早アガリで終局':'山札が尽きて最終出牌終了'} · ${isComplete?`${MATCH_FORMATS[match.format].label}の全${match.totalGames}ゲーム終了`:`残り${match.totalGames-match.gameNumber}ゲーム`}</p>
+  <div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div>
+  <table class="mini-table"><tr><th>このゲームの内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>ゲーム得点</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table>
+  <div class="settlement"><span>得点差 ${record?.delta>0?'+':''}${record?.delta??0}点 → 持ち点に反映</span><div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div></div>
+  ${isComplete?`<h3>総合成績</h3><table class="mini-table"><tr><th>ゲーム</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th><th>得点差</th></tr>${match.history.map(r=>`<tr><td>${r.game}</td><td>${r.scores[0]}</td><td>${r.scores[1]}</td><td>${r.delta>0?'+':''}${r.delta}</td></tr>`).join('')}<tr><th>最終持ち点</th><th>${match.points[0]}</th><th>${match.points[1]}</th><th>合計500</th></tr></table>`:''}
+  <div class="modal-actions">${isComplete?`<button class="button primary large" data-action="play-again">同じ形式でもう一戦！</button>`:`<button class="button primary large" data-action="next-game">次のゲームへ →</button>`}<button class="button quiet" data-action="back-home">タイトルへ</button></div></div></div>`;
 }
 function handoffMarkup() {
   return `<div class="overlay"><div class="modal privacy-view" role="dialog" aria-modal="true"><div class="symbol">◇</div><span class="eyebrow">PASS THE DEVICE</span><div class="title">${nameOf(game.current)}の番だよ</div><p>相手に手札が見えないよう端末を渡してね</p><div class="modal-actions" style="justify-content:center"><button class="button primary large" data-action="reveal">手札を確認して始める</button></div></div></div>`;
@@ -624,20 +709,37 @@ function notify(message) {
   render();
 }
 function resetTurnSelection() { selected = []; flipped = {}; }
-function start(mode, replay = false) {
+function start(mode, format = selectedFormat) {
+  clearTimeout(cpuTimer);
   const seed = Date.now() + Math.floor(Math.random()*100000);
-  game = newGame({ mode, initialHand:9, seed });
+  match = createMatch({ format, mode, initialHand:9, seed });
+  game = match.game;
+  selectedFormat = format;
   helpOpen = false;
   handoff = mode==='local';
   busy = false;
   resetTurnSelection();
   render();
 }
+function settleIfFinished() {
+  if (match && game.phase === 'finished') settleMatchGame(match);
+}
+function advanceGame() {
+  if (!match?.settled || match.complete) return;
+  clearTimeout(cpuTimer);
+  game = nextMatchGame(match, Date.now() + Math.floor(Math.random()*100000));
+  resetTurnSelection();
+  handoff = game.mode === 'local';
+  busy = false;
+  render();
+  scheduleCPU();
+}
 function run(action) {
   if (!game) return;
   const prior = game.current;
   try { dispatch(game, action); }
   catch (e) { notify(e.message); return; }
+  settleIfFinished();
   resetTurnSelection();
   if (game.mode==='local' && game.phase!=='finished' && game.current!==prior) handoff = true;
   render();
@@ -647,12 +749,14 @@ function scheduleCPU() {
   if (!game || game.mode!=='cpu' || game.current!==1 || busy || game.phase==='finished' || helpOpen) return;
   busy = true;
   render();
-  setTimeout(() => {
+  const scheduledGame = game;
+  cpuTimer = setTimeout(() => {
     busy=false;
-    if (!game || game.current!==1 || game.phase==='finished' || helpOpen) return;
+    if (game !== scheduledGame || !game || game.current!==1 || game.phase==='finished' || helpOpen) return;
     try {
       const action = chooseAIAction(game);
       if (action) dispatch(game,action);
+      settleIfFinished();
     } catch(e) { notify(`CPU処理エラー: ${e.message}`); return; }
     resetTurnSelection();
     render();
@@ -665,11 +769,13 @@ $app.addEventListener('click', event => {
   const action = target.dataset.action;
   if (action==='help') { helpOpen=true;render();return; }
   if (action==='close-help') { helpOpen=false;render();scheduleCPU();return; }
+  if (action==='select-format' && !game) { selectedFormat=target.dataset.format;render();return; }
   if (action==='start-cpu') return start('cpu');
   if (action==='start-local') return start('local');
-  if (action==='play-again') return start(game?.mode || 'cpu',true);
-  if (action==='back-home') {game=null;handoff=false;helpOpen=false;render();return;}
-  if (action==='restart') { if(window.confirm('現在の対局を終了して最初からやり直す？')) start(game.mode); return; }
+  if (action==='play-again') return start(game?.mode || 'cpu',match?.format || selectedFormat);
+  if (action==='next-game') return advanceGame();
+  if (action==='back-home') {clearTimeout(cpuTimer);game=null;match=null;handoff=false;helpOpen=false;render();return;}
+  if (action==='restart') { if(window.confirm('現在の対局を終了して最初からやり直す？')) start(game.mode,match.format); return; }
   if (action==='reveal') { handoff=false;render();return; }
   if (!game || game.phase==='finished' || helpOpen || handoff || !isHumanTurn()) return;
   const id = Number(target.dataset.id);

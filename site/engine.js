@@ -235,6 +235,9 @@ function orientationVariants(game, id) {
 export function attachmentMoves(game, ids, player = game.current) {
   if (game.phase !== 'attachment' || !game.board || ids.length < 1 || ids.length > 2) return [];
   if (new Set(ids).size !== ids.length || ids.some(id => !game.hands[player].includes(id))) return [];
+  // Canonicalize tile IDs: a move key must resolve identically when the AI or
+  // UI passes a two-tile selection in the opposite order.
+  ids = [...ids].sort((a, b) => a - b);
   const items = game.board.items;
   const left = items[0].a, right = items[items.length - 1].b;
   const out = [], seen = new Set();

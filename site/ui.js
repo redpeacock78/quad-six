@@ -257,7 +257,7 @@ $app.addEventListener('click', event => {
   if (action==='select-format' && !game) { selectedFormat=target.dataset.format;render();return; }
   if (action==='start-cpu') return start('cpu');
   if (action==='start-local') return start('local');
-  if (action==='inspect-board' && game?.phase==='finished') { inspectFinalBoard=true;render();return; }
+  if (action==='inspect-board' && game?.phase==='finished') { inspectFinalBoard=true;render();window.scrollTo?.({top:0,behavior:'smooth'});return; }
   if (action==='back-to-result' && game?.phase==='finished') { inspectFinalBoard=false;render();return; }
   if (action==='play-again') return start(game?.mode || 'cpu',match?.format || selectedFormat);
   if (action==='next-game') return advanceGame();

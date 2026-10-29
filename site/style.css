@@ -7,3 +7,29 @@
 
 /* Multi-game match UI */
 .format-picker{margin:20px 0 8px;max-width:560px}.format-buttons{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}.format-choice{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:120px;gap:4px;border-color:#557467}.format-choice small{font-size:11px;color:var(--muted)}.format-choice.chosen{background:#dcb778;color:#15342c;border-color:#e6c891;font-weight:800}.format-choice.chosen small{color:#30594a}.match-points{display:grid;grid-template-columns:1fr 1fr;gap:10px}.match-points>div{border:1px solid #547864;background:#153c30;border-radius:9px;padding:12px 15px;display:flex;flex-direction:column;gap:5px}.match-points small{color:#c1d4c4;font-size:11px}.match-points strong{font-size:27px;color:var(--gold2);font-variant-numeric:tabular-nums}.settlement{margin-top:18px;padding:16px;border-radius:10px;border:1px solid #5d8069;background:#102e27}.settlement>span{display:block;color:var(--gold2);font-size:13px;font-weight:800;margin-bottom:12px}.match-panel .drawer{margin-top:12px}@media(max-width:670px){.format-choice{flex:1;min-width:88px}.format-buttons{gap:5px}.match-points strong{font-size:23px}}
+
+/* Opponent hand: concealed tile backs across the far side of the felt */
+.opponent-hand{position:relative;z-index:1;min-width:0;padding:8px 22px 12px;margin:0 18px;border:1px solid #81ad9354;border-radius:10px;background:#082d267a;box-shadow:inset 0 1px 12px #0002}
+.opponent-heading{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:#c9dcd0}
+.opponent-heading strong{color:var(--gold2);font-size:15px;font-variant-numeric:tabular-nums}
+.opponent-name{font-weight:700;letter-spacing:.03em}
+.opponent-turn{font-size:10px;border:1px solid #b4ceae7a;background:#245544;padding:3px 8px;border-radius:999px;color:#daf2d5}
+.opponent-tiles{display:flex;justify-content:safe center;align-items:center;gap:5px;width:100%;min-height:44px;overflow-x:auto;overflow-y:hidden;padding:2px 1px 7px;scrollbar-color:#718c75 #153e32}
+.opponent-tiles .domino.small{width:26px;height:41px;padding:0;border-width:2px;border-radius:4px;flex-shrink:0;box-shadow:0 3px 0 #847453,0 6px 11px #0004}
+.opponent-tiles .domino.face-down:before{width:14px;height:14px;font-size:11px}
+.opponent-empty{color:#c4d7c4;font-size:12px}
+.board-review-toolbar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;border-color:#ad9765}
+.board-review-toolbar>div{display:flex;flex-direction:column;gap:5px}
+.board-review-toolbar strong{color:var(--gold2);font-size:17px}
+.board-review-actions{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.board-review-actions .help-text{flex:1;min-width:200px}
+.review-entry{margin:14px 0 4px}
+.review-entry .button{width:100%;justify-content:center}
+@media(max-width:670px){
+  .opponent-hand{margin:0 9px;padding:9px 8px}
+  .opponent-tiles{gap:3px}
+  .opponent-tiles .domino.small{width:22px;height:34px}
+  .opponent-tiles .domino.face-down:before{width:12px;height:12px;font-size:10px}
+  .opponent-heading{gap:7px}
+  .board-review-toolbar .button{width:100%}
+}

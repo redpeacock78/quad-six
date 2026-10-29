@@ -29,7 +29,7 @@ async function makeUI() {
 }
 
 function finishedMatch({ mode='cpu', opponentCount=4 }={}) {
-  const match = matchLib.createMatch({format:'hanchan',mode,seed:42});
+  const match = matchLib.createMatch({format:'hanchan',mode,seed:42,startingPlayer:0});
   match.game.current=mode==='cpu'?1:0;
   match.game.hands[mode==='cpu'?1:1] = match.game.hands[1].slice(0,opponentCount);
   match.game.board={
@@ -44,7 +44,7 @@ function finishedMatch({ mode='cpu', opponentCount=4 }={}) {
 
 test('opponent backs reflect actual hidden hand count during play', async () => {
   const ui=await makeUI();
-  const m=matchLib.createMatch({mode:'cpu',seed:6});
+  const m=matchLib.createMatch({mode:'cpu',seed:6,startingPlayer:0});
   ui.mount(m);
   assert.match(ui.app.innerHTML,/CPUの手牌は9枚/);
   assert.equal((ui.app.innerHTML.match(/domino small face-down no-select/g)||[]).length,9);
@@ -84,7 +84,7 @@ test('finished match toggles from score overlay to final table and back without 
 
 test('opponent hand is concealed in two-player local game', async () => {
   const ui=await makeUI();
-  const m=matchLib.createMatch({mode:'local',seed:8});
+  const m=matchLib.createMatch({mode:'local',seed:8,startingPlayer:0});
   ui.mount(m);
   assert.match(ui.app.innerHTML,/プレイヤー2の手牌は9枚/);
   assert.equal((ui.app.innerHTML.match(/domino small face-down no-select/g)||[]).length,9);

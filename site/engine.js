@@ -95,7 +95,8 @@ function beginRound(game) {
   game.current = game.lead;
   game.rounds.push({ round: game.round, role: [0, 0], pips: [0, 0], honba: [0, 0] });
 }
-export function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now() } = {}) {
+export function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now(), startingPlayer = 0 } = {}) {
+  assert(startingPlayer === 0 || startingPlayer === 1, '先手は0か1');
   assert(initialHand >= 2 && initialHand <= 16, '初期手札は2〜16枚');
   const tiles = tileset();
   const stock = tiles.map(t => t.id);
@@ -104,7 +105,7 @@ export function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now() } = {
   for (let i = 0; i < initialHand; i++) for (let p = 0; p < 2; p++) hands[p].push(stock.pop());
   const game = {
     version: 3, mode, seed, tiles, stock, hands,
-    discard: [], board: null, current: 0, lead: 0, phase: 'opening', round: 1,
+    discard: [], board: null, current: startingPlayer, lead: startingPlayer, phase: 'opening', round: 1,
     final: false, finalOut: [false, false], lastDrawBy: null, lastDrawExempt: false,
     openingRole: null, honba: 0, lastOverwriter: null, passStreak: 0,
     scores: [0, 1].map(() => ({ role: 0, pips: 0, honba: 0, early: 0, lastDraw: 0, remaining: 0 })),

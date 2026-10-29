@@ -14,7 +14,7 @@ export const MARTIAL = [
 
 const MARTIAL_LOOKUP = new Map(MARTIAL.map(([name, x, y, level]) => [pairKey(x, y), { name, level }]));
 export const ROLE_POINTS = { supreme: 20, civil: 15, martial: 10, common: 5 };
-export const DEFAULTS = { initialHand: 9, honbaUnit: 3, earlyBonus: 15, lastDrawPenalty: 15 };
+export const DEFAULTS = { initialHand: 9, raiseUnit: 3, earlyBonus: 15, lastDrawPenalty: 15 };
 
 function pairKey(a, b) { return [a, b].sort().join('+'); }
 function random(seed) {
@@ -33,7 +33,7 @@ export const tilePips = (tile) => tile.a + tile.b;
 export const getTile = (game, id) => game.tiles[id];
 export const totalScore = (game, player) => {
   const s = game.scores[player];
-  return s.role + s.pips + s.honba + s.early - s.lastDraw - s.remaining;
+  return s.role + s.pips + s.raise + s.tableHonba + s.early - s.lastDraw - s.remaining;
 };
 export function tileset() {
   const tiles = [];
@@ -81,19 +81,19 @@ function record(game, text, by = null) {
 function stats(game) { return game.rounds[game.rounds.length - 1]; }
 function award(game, player, field, points) {
   game.scores[player][field] += points;
-  if (field === 'role' || field === 'pips' || field === 'honba') stats(game)[field][player] += points;
+  if (field === 'role' || field === 'pips' || field === 'raise') stats(game)[field][player] += points;
 }
 function other(p) { return 1 - p; }
 function beginRound(game) {
   game.board = null;
   game.openingRole = null;
-  game.honba = 0;
+  game.raise = 0;
   game.lastOverwriter = null;
   game.passStreak = 0;
   game.adjustDone = [false, false];
   game.phase = 'opening';
   game.current = game.lead;
-  game.rounds.push({ round: game.round, role: [0, 0], pips: [0, 0], honba: [0, 0] });
+  game.rounds.push({ round: game.round, role: [0, 0], pips: [0, 0], raise: [0, 0] });
 }
 export function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now(), startingPlayer = 0 } = {}) {
   assert(startingPlayer === 0 || startingPlayer === 1, '先手は0か1');
@@ -107,9 +107,9 @@ export function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now(), star
     version: 3, mode, seed, tiles, stock, hands,
     discard: [], board: null, current: startingPlayer, lead: startingPlayer, phase: 'opening', round: 1,
     final: false, finalOut: [false, false], lastDrawBy: null, lastDrawExempt: false,
-    openingRole: null, honba: 0, lastOverwriter: null, passStreak: 0,
-    scores: [0, 1].map(() => ({ role: 0, pips: 0, honba: 0, early: 0, lastDraw: 0, remaining: 0 })),
-    rounds: [], history: [], adjustDone: [false, false], endReason: null,
+    openingRole: null, raise: 0, lastOverwriter: null, passStreak: 0,
+    scores: [0, 1].map(() => ({ role: 0, pips: 0, raise: 0, tableHonba: 0, early: 0, lastDraw: 0, remaining: 0 })),
+    rounds: [], history: [], adjustDone: [false, false], endReason: null, endWinner: null,
     initialHand
   };
   beginRound(game);
@@ -142,10 +142,10 @@ function checkEndHand(game, player) {
   return false;
 }
 function settleOpening(game, passedBy) {
-  if (game.honba > 0 && game.lastOverwriter != null) {
-    const pts = game.honba * DEFAULTS.honbaUnit;
-    award(game, game.lastOverwriter, 'honba', pts);
-    record(game, `${game.honba}本場 · P${game.lastOverwriter + 1}が${pts}点総取り`, game.lastOverwriter);
+  if (game.raise > 0 && game.lastOverwriter != null) {
+    const pts = game.raise * DEFAULTS.raiseUnit;
+    award(game, game.lastOverwriter, 'raise', pts);
+    record(game, `${game.raise}レイズ · P${game.lastOverwriter + 1}が${pts}点総取り`, game.lastOverwriter);
   }
   game.phase = 'attachment';
   game.passStreak = 0;
@@ -155,12 +155,14 @@ function settleOpening(game, passedBy) {
 function nextActive(game, player) { return game.final && game.finalOut[other(player)] ? player : other(player); }
 function finish(game, reason, winner = null) {
   if (game.phase === 'finished') return;
+  const previousPhase = game.phase;
   game.phase = 'finished';
   game.endReason = reason;
+  game.endWinner = reason === 'early' ? winner : null;
   if (reason === 'early') {
     // A last-tile opening bid can end the game before normal bidding settlement.
-    if (game.phase === 'opening' && game.honba > 0 && game.lastOverwriter !== null) {
-      award(game, game.lastOverwriter, 'honba', game.honba * DEFAULTS.honbaUnit);
+    if (previousPhase === 'opening' && game.raise > 0 && game.lastOverwriter !== null) {
+      award(game, game.lastOverwriter, 'raise', game.raise * DEFAULTS.raiseUnit);
     }
     game.scores[winner].early = DEFAULTS.earlyBonus;
     game.lastDrawBy = null; // early finish overrides LO penalty
@@ -198,7 +200,7 @@ function endRound(game) {
   record(game, `第${game.round}局終了 · 場の牌を公開除外`);
   game.board = null;
   game.openingRole = null;
-  game.honba = 0;
+  game.raise = 0;
   game.lastOverwriter = null;
   game.passStreak = 0;
   game.round += 1;
@@ -288,7 +290,7 @@ export function dispatch(game, action) {
       assert(isStronger(role, game.openingRole), '現在の役を上書きできません');
       if (game.board) {
         game.discard.push(...game.board.items.map(item => item.id));
-        game.honba++;
+        game.raise++;
         game.lastOverwriter = p;
       }
       const flips = action.flips || [false, false];
@@ -297,7 +299,7 @@ export function dispatch(game, action) {
       game.openingRole = role;
       award(game, p, 'role', role.points);
       award(game, p, 'pips', ids.reduce((s, id) => s + tilePips(getTile(game, id)), 0));
-      record(game, `P${p + 1} ${role.name} · +${role.points}役点${game.honba ? ` · ${game.honba}本場` : ''}`, p);
+      record(game, `P${p + 1} ${role.name} · +${role.points}役点${game.raise ? ` · ${game.raise}レイズ` : ''}`, p);
       if (checkEndHand(game, p)) break;
       game.current = nextActive(game, p);
       if (game.final && game.current === p) settleOpening(game, other(p));

@@ -1,4 +1,4 @@
-import { handPairs, isStronger, allAttachmentMoves, getTile, tilePips, tileKey, attachmentMoves, totalScore } from './engine.js?v=graph-sync-20261030a';
+import { handPairs, isStronger, allAttachmentMoves, getTile, tilePips, tileKey, attachmentMoves, totalScore } from './engine.js?v=pip-svg-20261030b';
 
 
 /** An intentionally readable starter opponent, not an optimal solver. */

@@ -320,7 +320,10 @@ export function dispatch(game, action) {
       }
       const flips = action.flips || [false, false];
       const roots=ids.map((id,i)=>oriented(game,id,Boolean(flips[i])));
-      game.board={items:roots,splitIndex:1,ports:initialPorts(roots),chosenSide:null};
+      // Only a Supreme opening keeps BOTH starting roots playable, even
+      // after an ordinary one-sided attachment. Other roles lock to one side.
+      game.board={items:roots,splitIndex:1,ports:initialPorts(roots),
+        chosenSide:role.tier==='supreme'?'supreme':null};
       removeHand(game, p, ids);
       game.openingRole = role;
       award(game, p, 'role', role.points);

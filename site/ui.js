@@ -152,10 +152,18 @@ function helpMarkup() {
 }
 function endMarkup() {
   const scores = [totalScore(game,0),totalScore(game,1)];
-  const winner = scores[0]===scores[1]?null:scores[0]>scores[1]?0:1;
+  const record = match?.history.at(-1);
+  const isComplete = Boolean(match?.complete);
+  const winner = isComplete ? matchWinner(match) : record?.winner;
   const itemRows = ['role','pips','honba','early','lastDraw','remaining'];
   const labels = {role:'役点',pips:'ピップ点',honba:'本場点',early:'早アガリ',lastDraw:'山枯らし減点',remaining:'残牌減点'};
-  return `<div class="overlay"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">GAME SET · FINAL SCORE</span><h2>${winner===null?'引き分け！':`${nameOf(winner)}の勝利！`}</h2><p>${game.endReason==='early'?'早アガリで終局 · 総得点を精算したよ':'山札が尽きて最終出牌終了 · 総得点を精算したよ'}</p><div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div><table class="mini-table"><tr><th>内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>合計</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table><div class="modal-actions"><button class="button primary large" data-action="play-again">もう一戦！</button><button class="button quiet" data-action="back-home">タイトルへ</button></div></div></div>`;
+  return `<div class="overlay"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">${isComplete?'MATCH SET · FINAL STANDINGS':'GAME SET · SCORE SETTLEMENT'}</span><h2>${isComplete?(winner===null?'対局終了 · 引き分け！':`${nameOf(winner)}の総合勝利！`):`第${match.gameNumber}ゲーム終了`}</h2>
+  <p>${game.endReason==='early'?'早アガリで終局':'山札が尽きて最終出牌終了'} · ${isComplete?`${MATCH_FORMATS[match.format].label}の全${match.totalGames}ゲーム終了`:`残り${match.totalGames-match.gameNumber}ゲーム`}</p>
+  <div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div>
+  <table class="mini-table"><tr><th>このゲームの内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>ゲーム得点</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table>
+  <div class="settlement"><span>得点差 ${record?.delta>0?'+':''}${record?.delta??0}点 → 持ち点に反映</span><div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div></div>
+  ${isComplete?`<h3>総合成績</h3><table class="mini-table"><tr><th>ゲーム</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th><th>得点差</th></tr>${match.history.map(r=>`<tr><td>${r.game}</td><td>${r.scores[0]}</td><td>${r.scores[1]}</td><td>${r.delta>0?'+':''}${r.delta}</td></tr>`).join('')}<tr><th>最終持ち点</th><th>${match.points[0]}</th><th>${match.points[1]}</th><th>合計500</th></tr></table>`:''}
+  <div class="modal-actions">${isComplete?`<button class="button primary large" data-action="play-again">同じ形式でもう一戦！</button>`:`<button class="button primary large" data-action="next-game">次のゲームへ →</button>`}<button class="button quiet" data-action="back-home">タイトルへ</button></div></div></div>`;
 }
 function handoffMarkup() {
   return `<div class="overlay"><div class="modal privacy-view" role="dialog" aria-modal="true"><div class="symbol">◇</div><span class="eyebrow">PASS THE DEVICE</span><div class="title">${nameOf(game.current)}の番だよ</div><p>相手に手札が見えないよう端末を渡してね</p><div class="modal-actions" style="justify-content:center"><button class="button primary large" data-action="reveal">手札を確認して始める</button></div></div></div>`;
@@ -170,20 +178,37 @@ function notify(message) {
   render();
 }
 function resetTurnSelection() { selected = []; flipped = {}; }
-function start(mode, replay = false) {
+function start(mode, format = selectedFormat) {
+  clearTimeout(cpuTimer);
   const seed = Date.now() + Math.floor(Math.random()*100000);
-  game = newGame({ mode, initialHand:9, seed });
+  match = createMatch({ format, mode, initialHand:9, seed });
+  game = match.game;
+  selectedFormat = format;
   helpOpen = false;
   handoff = mode==='local';
   busy = false;
   resetTurnSelection();
   render();
 }
+function settleIfFinished() {
+  if (match && game.phase === 'finished') settleMatchGame(match);
+}
+function advanceGame() {
+  if (!match?.settled || match.complete) return;
+  clearTimeout(cpuTimer);
+  game = nextMatchGame(match, Date.now() + Math.floor(Math.random()*100000));
+  resetTurnSelection();
+  handoff = game.mode === 'local';
+  busy = false;
+  render();
+  scheduleCPU();
+}
 function run(action) {
   if (!game) return;
   const prior = game.current;
   try { dispatch(game, action); }
   catch (e) { notify(e.message); return; }
+  settleIfFinished();
   resetTurnSelection();
   if (game.mode==='local' && game.phase!=='finished' && game.current!==prior) handoff = true;
   render();
@@ -193,12 +218,14 @@ function scheduleCPU() {
   if (!game || game.mode!=='cpu' || game.current!==1 || busy || game.phase==='finished' || helpOpen) return;
   busy = true;
   render();
-  setTimeout(() => {
+  const scheduledGame = game;
+  cpuTimer = setTimeout(() => {
     busy=false;
-    if (!game || game.current!==1 || game.phase==='finished' || helpOpen) return;
+    if (game !== scheduledGame || !game || game.current!==1 || game.phase==='finished' || helpOpen) return;
     try {
       const action = chooseAIAction(game);
       if (action) dispatch(game,action);
+      settleIfFinished();
     } catch(e) { notify(`CPU処理エラー: ${e.message}`); return; }
     resetTurnSelection();
     render();
@@ -211,11 +238,13 @@ $app.addEventListener('click', event => {
   const action = target.dataset.action;
   if (action==='help') { helpOpen=true;render();return; }
   if (action==='close-help') { helpOpen=false;render();scheduleCPU();return; }
+  if (action==='select-format' && !game) { selectedFormat=target.dataset.format;render();return; }
   if (action==='start-cpu') return start('cpu');
   if (action==='start-local') return start('local');
-  if (action==='play-again') return start(game?.mode || 'cpu',true);
-  if (action==='back-home') {game=null;handoff=false;helpOpen=false;render();return;}
-  if (action==='restart') { if(window.confirm('現在の対局を終了して最初からやり直す？')) start(game.mode); return; }
+  if (action==='play-again') return start(game?.mode || 'cpu',match?.format || selectedFormat);
+  if (action==='next-game') return advanceGame();
+  if (action==='back-home') {clearTimeout(cpuTimer);game=null;match=null;handoff=false;helpOpen=false;render();return;}
+  if (action==='restart') { if(window.confirm('現在の対局を終了して最初からやり直す？')) start(game.mode,match.format); return; }
   if (action==='reveal') { handoff=false;render();return; }
   if (!game || game.phase==='finished' || helpOpen || handoff || !isHumanTurn()) return;
   const id = Number(target.dataset.id);

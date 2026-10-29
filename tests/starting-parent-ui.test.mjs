@@ -14,7 +14,7 @@ test('CPU plays the opening bid automatically when drawn as the first parent', a
   const queue=[];
   const timers=(fn)=>{queue.push(fn);return queue.length;};
   const deps={...engine,...ai,...matchLib};
-  const names='newGame dispatch roleOf isStronger attachmentMoves getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner'.split(' ');
+  const names='newGame dispatch roleOf isStronger attachmentMoves getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner matchRoundName'.split(' ');
   const factory=new Function('deps','document','window','setTimeout','clearTimeout',
     'const {'+names.join(',')+'}=deps;\n'+source+
     '\nreturn {start, getState:()=>({game,match})};');

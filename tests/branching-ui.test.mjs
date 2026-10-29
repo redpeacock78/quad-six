@@ -214,9 +214,11 @@ test('Supreme opening keeps the right root visible and selectable after attachin
   assert.equal(result.chosen,'supreme');
   assert.ok(result.stillOpen);
   assert.ok(result.rightKey,'right root is legal for the other side of Supreme');
+  assert.match(app.innerHTML,/至尊：左右両側の起点が有効/);
   assert.match(app.innerHTML,/data-port-key="root-right"/);
   assert.ok(app.innerHTML.includes(result.rightLabel));
   click('select',{id:String(result.rightId)});
+  assert.match(app.innerHTML,/至尊の平場は左右両側OK/);
   assert.ok(app.innerHTML.includes(result.rightLabel+'へ1枚'));
   click('choose-attachment',{key:result.rightKey});
   click('attach');

@@ -33,6 +33,15 @@ const isHumanTurn = () => game && (game.mode === 'local' || game.current === 0);
 function pipHalf(n) {
   return `<span class="half">${PIPS[n].map(([x,y]) => `<span class="pip" style="left:${x*25}%;top:${y*25}%"></span>`).join('')}</span>`;
 }
+// The graph is an SVG, so its pips must be SVG circles rather than the
+// HTML-only .half/.pip spans used by hand tiles. Share the exact same PIPS
+// table to keep both renderers visually and numerically consistent.
+function svgPipHalf(value, x, y, width, height) {
+  const radius = Math.min(3.5, width / 12, height / 10);
+  return PIPS[value].map(([col,row]) =>
+    `<circle class="board-pip" cx="${x+width*col/4}" cy="${y+height*row/4}" r="${radius}" fill="#17342d"/>`
+  ).join('');
+}
 function dominoMarkup(a, b, { small = false, large = false, back = false, selected = false, button = false, id = null } = {}) {
   const cls = `domino ${small?'small ':''}${large?'large ':''}${button?'hold ':''}${selected?'selected ':''}${back?'face-down ':''}no-select`;
   const middle = back ? '' : `${pipHalf(a)}${pipHalf(b)}`;
@@ -209,11 +218,11 @@ function branchingBoardMarkup() {
         fill="${isDouble?'#f5dca6':'#f0e9d9'}" stroke="${isDouble?'#d3a85b':'#ad9872'}" stroke-width="2"/>
       ${vertical?
         `<line x1="${-w/2+3}" y1="0" x2="${w/2-3}" y2="0" stroke="#857968" stroke-width="1.5"/>
-          <text x="0" y="-12" text-anchor="middle" font-size="21" fill="#17342d">${a}</text>
-          <text x="0" y="27" text-anchor="middle" font-size="21" fill="#17342d">${b}</text>`:
+          ${svgPipHalf(a,-w/2,-h/2,w,h/2)}
+          ${svgPipHalf(b,-w/2,0,w,h/2)}`:
         `<line x1="0" y1="${-h/2+3}" x2="0" y2="${h/2-3}" stroke="#857968" stroke-width="1.5"/>
-          <text x="-20" y="7" text-anchor="middle" font-size="21" fill="#17342d">${a}</text>
-          <text x="20" y="7" text-anchor="middle" font-size="21" fill="#17342d">${b}</text>`}
+          ${svgPipHalf(a,-w/2,-h/2,w/2,h)}
+          ${svgPipHalf(b,0,-h/2,w/2,h)}`}
       </g>`;
   }).join('');
   return `<div class="board-graph" role="img" aria-label="分岐するドミノ盤面。開放端は${ports.length}か所">

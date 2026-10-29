@@ -95,7 +95,8 @@ test('a spinner connected to the upper branch carries up/left/right direction la
 
 test('the historical 6-2-2-0-3-3 screenshot is a LEFT branch and never a false right-side connection',()=>{
   const {app,ctx}=fixture();
-  const outcome=runInContext(\`
+  const outcome=runInContext(`
+    (() => {
     start('local','single');handoff=false;
     const find = k => game.tiles.filter(t=>tileKey(t)===k).map(t=>t.id);
     const roots=find('2-6');
@@ -112,12 +113,13 @@ test('the historical 6-2-2-0-3-3 screenshot is a LEFT branch and never a false r
     if(!theirs)throw Error('0-3 and 3-3 continuation unexpectedly illegal');
     dispatch(game,{type:'attach',ids:[ca,cb],moveKey:theirs.key});
     game.current=0;game.phase='attachment';render();
-    ({
+    return {
       scores:[game.scores[0].pips,game.scores[1].role+game.scores[1].pips],
       items:game.board.items.map(t=>({a:t.a,b:t.b,parent:t.parent})),
       side:game.board.chosenSide
-    });
-  \`,ctx);
+    };
+    })();
+  `,ctx);
   assert.equal(outcome.scores.join(','),'6,40');
   assert.equal(outcome.side,'left');
   assert.equal(outcome.items.length,6);

@@ -51,12 +51,22 @@ function currentHand(player = game.current) {
     return `<div class="tile-wrap">${tileDisplay(id, { flip:interactive && flip, button:interactive, selected:interactive && selected.includes(id) })}${interactive && game.phase==='opening' && tile.a !== tile.b ? `<button class="flip-control" data-action="flip" data-id="${id}" title="牌を反転">↻</button>` : ''}</div>`;
   }).join('');
 }
+const DIRECTION_LABELS = { left: '左端', right: '右端', up: '上端', down: '下端' };
+const DIRECTION_SHORT = { left: '左', right: '右', up: '上', down: '下' };
+function portDirection(port) {
+  return port?.direction ?? port?.side ?? 'right';
+}
+function formatPort(port, index) {
+  return `${DIRECTION_LABELS[portDirection(port)] ?? '開放端'}（端点${index+1}・${port?.pip ?? '?'}）`;
+}
 function formatMove(move) {
   const ports=boardPorts(game.board);
   const index=ports.findIndex(port=>port.key===move.portKey);
-  const second=ports.findIndex(port=>port.key===move.portKey2);
-  if(move.special)return `至尊・端点${index+1}と${second+1}`;
-  return `端点${index+1}（${ports[index]?.pip ?? '?'}）`;
+  if(move.special){
+    const second=ports.findIndex(port=>port.key===move.portKey2);
+    return `至尊・${formatPort(ports[index],index)}＋${formatPort(ports[second],second)}`;
+  }
+  return formatPort(ports[index],index);
 }
 function activeAttachmentMove(moves) {
   return moves.find(move => move.key === selectedMoveKey) || (moves.length === 1 ? moves[0] : null);
@@ -84,7 +94,7 @@ function actionPanel() {
     const moves = attachmentMoves(game, selected);
     const activeMove = activeAttachmentMove(moves);
     return `<div class="action-head"><strong>付札を出す</strong><span class="small-label">ドミノ</span></div>
-      <p class="help-text">① 手札から1〜2枚選ぶ → ② 盤面の端点番号で接続先を選ぶ → ③「付札を場に出す」で確定${game.final?' · 最終局のパスは即脱落':''}</p>
+      <p class="help-text">① 手札から1〜2枚選ぶ → ② 上下左右と端点番号で接続先を選ぶ → ③「付札を場に出す」で確定${game.final?' · 最終局のパスは即脱落':''}</p>
       ${movesMarkup(moves, activeMove)}
       <div class="action-buttons attachment-actions"><button class="button primary" data-action="attach" ${activeMove?'':'disabled'}>付札を場に出す ↗</button><button class="button quiet" data-action="passAttach">${game.final?'パスして脱落':'パス · 1枚引く'}</button>${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
@@ -180,9 +190,11 @@ function branchingBoardMarkup() {
     if(!pos||!base)return '';
     const x=px(pos),y=pos.y+shiftY;
     links.push(line(px(base),base.y+shiftY,x,y));
-    return `<g><circle cx="${x}" cy="${y}" r="24" fill="#1a4a3c" stroke="#e2bc76" stroke-width="2" stroke-dasharray="4 3"/>
+    const direction=portDirection(port);
+    return `<g role="img" aria-label="${formatPort(port,i)}"><title>${formatPort(port,i)}</title>
+      <circle cx="${x}" cy="${y}" r="24" fill="#1a4a3c" stroke="#e2bc76" stroke-width="2" stroke-dasharray="4 3"/>
       <text x="${x}" y="${y-3}" text-anchor="middle" font-size="15" font-weight="bold" fill="#f9df9e">${port.pip}</text>
-      <text x="${x}" y="${y+14}" text-anchor="middle" font-size="10" fill="#f5e4bf">端点${i+1}</text></g>`;
+      <text x="${x}" y="${y+14}" text-anchor="middle" font-size="11" fill="#f5e4bf">${DIRECTION_SHORT[direction] ?? '端'}${i+1}</text></g>`;
   }).join('');
   const dominos=items.map((item,index)=>{
     const pos=positions.get(item.id);
@@ -269,7 +281,7 @@ function gameMarkup() {
   return `<section class="game-layout"><div class="main-column">
     ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · ${currentRoundName()} · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
     <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?`${currentRoundName()} · 最終出牌`:`${currentRoundName()} · 第${game.round}平場`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
-    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>開放端 <b>${ports.length}か所</b></span><span>同じ数字の枝に接続 · 端点番号で選択</span><span>数字 <b>${ports.map(p=>p.pip).join('・')||'—'}</b></span></div></section>
+    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>開放端 <b>${ports.length}か所</b></span><span>同じ数字の枝に接続 · 上下左右と端点番号で選択</span><span>数字 <b>${ports.map(p=>p.pip).join('・')||'—'}</b></span></div></section>
     <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / ${game.phase==='adjustment'?Math.min(game.hands[current].length,game.stock.length):2}`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
    </div>${sideMarkup()}</section>`;
 }

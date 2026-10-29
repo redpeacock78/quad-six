@@ -92,3 +92,47 @@ test('a spinner connected to the upper branch carries up/left/right direction la
   assert.ok(app.innerHTML.includes('左端（端点'));
   assert.ok(app.innerHTML.includes('右端（端点'));
 });
+
+test('the historical 6-2-2-0-3-3 screenshot is a LEFT branch and never a false right-side connection',()=>{
+  const {app,ctx}=fixture();
+  const outcome=runInContext(\`
+    start('local','single');handoff=false;
+    const find = k => game.tiles.filter(t=>tileKey(t)===k).map(t=>t.id);
+    const roots=find('2-6');
+    const ua=find('2-2')[0],ub=find('0-2')[0],ca=find('0-3')[0],cb=find('3-3')[0];
+    game.current=1;game.hands[1]=[...roots,ca,cb,find('5-6')[0]];
+    game.hands[0]=[ua,ub,find('1-5')[0]];
+    dispatch(game,{type:'open',ids:roots});
+    game.current=0;dispatch(game,{type:'passOpen'});
+    const mine=attachmentMoves(game,[ua,ub]).find(m=>m.portKey==='root-left');
+    if(!mine)throw Error('left 2-2 and 2-0 path unexpectedly illegal');
+    dispatch(game,{type:'attach',ids:[ua,ub],moveKey:mine.key});
+    game.current=1;
+    const theirs=attachmentMoves(game,[ca,cb]).find(m=>m.placements[0].a===0);
+    if(!theirs)throw Error('0-3 and 3-3 continuation unexpectedly illegal');
+    dispatch(game,{type:'attach',ids:[ca,cb],moveKey:theirs.key});
+    game.current=0;game.phase='attachment';render();
+    ({
+      scores:[game.scores[0].pips,game.scores[1].role+game.scores[1].pips],
+      items:game.board.items.map(t=>({a:t.a,b:t.b,parent:t.parent})),
+      side:game.board.chosenSide
+    });
+  \`,ctx);
+  assert.equal(outcome.scores.join(','),'6,40');
+  assert.equal(outcome.side,'left');
+  assert.equal(outcome.items.length,6);
+  const html=app.innerHTML;
+  assert.match(html,/class="board-graph"/);
+  assert.doesNotMatch(html,/class="board-strip"/);
+  const graph=html.split('class="board-graph"')[1];
+  const positioned=[...graph.matchAll(/transform="translate\(([\d.]+) ([\d.]+)\)" aria-label="(\d+)｜(\d+)"/g)]
+    .map(match=>({x:Number(match[1]),a:Number(match[3]),b:Number(match[4])}));
+  assert.equal(positioned.length,6);
+  assert.equal(positioned[0].a,2);
+  assert.equal(positioned[0].b,6);
+  assert.ok(positioned[1].x>positioned[0].x,'other opening tile is to the right');
+  for(const placed of positioned.slice(2))
+    assert.ok(placed.x<positioned[0].x,'left-attached tile must render LEFT of left root');
+  // Orientation shown on the left must be mirrored from engine order.
+  assert.deepEqual(positioned.slice(2).map(t=>[t.a,t.b]),[[2,2],[0,2],[3,0],[3,3]]);
+});

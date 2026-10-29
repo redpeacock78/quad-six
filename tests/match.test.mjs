@@ -10,7 +10,7 @@ const finishWithScores = (m, x, y) => {
 };
 
 test('single game settles 119 vs 84 -> 285 vs 215, once only', () => {
-  const m = createMatch({format:'single',seed:1});
+  const m = createMatch({format:'single',seed:1,startingPlayer:0});
   assert.deepEqual(m.points, [250,250]);
   assert.deepEqual([m.game.current,m.game.lead],[0,0]);
   assert.throws(()=>settleMatchGame(m),/終了/);
@@ -26,7 +26,7 @@ test('single game settles 119 vs 84 -> 285 vs 215, once only', () => {
 
 test('four / eight games alternate opening leads and preserve 500 points', () => {
   for(const [format, n] of [['tonpu',4],['hanchan',8]]) {
-    const m = createMatch({format,seed:1});
+    const m = createMatch({format,seed:1,startingPlayer:0});
     assert.equal(MATCH_FORMATS[format].games,n);
     for(let i=0;i<n;i++) {
       assert.equal(m.gameNumber,i+1);
@@ -57,4 +57,45 @@ test('ties transfer zero points and no sudden death on negative points', () => {
   nextMatchGame(m,3);
   assert.equal(m.gameNumber,3);
   assert.throws(()=>createMatch({format:'unknown'}),/未対応/);
+});
+
+test('new match chooses either player randomly, while accepting explicit starter for repeatable tests', () => {
+  const originalRandom = Math.random;
+  try {
+    Math.random = () => 0.1;
+    const m0 = createMatch({format:'single',seed:9});
+    assert.equal(m0.initialStarter,0);
+    assert.deepEqual([m0.game.current,m0.game.lead],[0,0]);
+
+    Math.random = () => 0.9;
+    const m1 = createMatch({format:'single',seed:9});
+    assert.equal(m1.initialStarter,1);
+    assert.deepEqual([m1.game.current,m1.game.lead],[1,1]);
+
+    const forced = createMatch({format:'single',seed:9,startingPlayer:0});
+    assert.equal(forced.initialStarter,0);
+    assert.throws(()=>createMatch({startingPlayer:2}),/親は0か1/);
+  } finally {
+    Math.random = originalRandom;
+  }
+});
+
+test('four / eight game matches alternate parent fairly from either initial parent', () => {
+  for (const first of [0,1]) {
+    for (const [format, count] of [['tonpu',4],['hanchan',8]]) {
+      const m = createMatch({format,startingPlayer:first,seed:123});
+      const observed=[];
+      for (let i=0; i<count; i++) {
+        observed.push(m.game.lead);
+        assert.equal(m.game.current,(first+i)%2);
+        finishWithScores(m,10,10);
+        if(i<count-1) nextMatchGame(m,124+i);
+      }
+      assert.equal(observed.filter(x=>x===0).length,count/2);
+      assert.equal(observed.filter(x=>x===1).length,count/2);
+      assert.equal(observed[0],first);
+      assert.equal(m.complete,true);
+      assert.deepEqual(m.points,[250,250]);
+    }
+  }
 });

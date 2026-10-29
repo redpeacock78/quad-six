@@ -87,6 +87,7 @@ npm run build:standalone
 - `site/standalone.html` — 単体起動できるHTML
 - `scripts/build-standalone.mjs` — 単体HTML生成
 - `tests/match.test.mjs` — 対局形式・得点移動テスト
+- `tests/scoring-v05.test.mjs` — レイズ点・早アガリ者記録・実際の連荘動作を検証
 - `tests/board-review.test.mjs` — 相手牌の秘匿表示・終局盤面レビューのテスト
 - `tests/navigation-modal.test.mjs` — GitHubリンク・タイトル遷移・モーダル枠外クリックのテスト
 - `tests/starting-parent-ui.test.mjs` — CPUが最初の親になった場合の自動開始と親交代のテスト

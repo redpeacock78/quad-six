@@ -19,7 +19,7 @@ async function mountUI() {
     'const {'+names.join(',')+'}=deps;\n'+source+`
 return {
   state(){return {game,match,helpOpen,inspectFinalBoard,handoff};},
-  endGame(){game.phase='finished';game.endReason='early';settleIfFinished();render();}
+  endGame(){game.phase='finished';game.endReason='early';game.endWinner=0;settleIfFinished();render();}
 };`);
   const ui = factory(deps,{getElementById:id=>id==='app'?app:null},mockWindow);
   return {

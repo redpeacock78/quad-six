@@ -65,3 +65,9 @@
 
 /* Poker-style multi-tile adjustment: keep the exchange confirmation prominent. */
 @media(max-width:670px){.adjustment-actions .button.primary{flex:1 0 100%;min-height:50px;font-size:14px}.adjustment-actions .button{min-height:44px}.adjustment-actions .button[data-action="select-all-exchange"]{flex:1 0 100%}}
+
+/* Branching board: scrollable planar tree with real exposed endpoints. */
+.board-holder{min-width:0;max-height:480px;overscroll-behavior:contain}
+.board-graph{display:flex;align-items:center;justify-content:center;margin:auto;min-width:max-content;min-height:190px;padding:0 12px}
+.board-graph svg{display:block;max-width:none;flex:none;filter:drop-shadow(0 3px 4px #0004)}
+@media(max-width:670px){.board-holder{max-height:370px;padding:12px 8px 18px}.board-graph{padding:0 4px}.mat-footer{gap:7px;flex-wrap:wrap;justify-content:center;text-align:center}.mat-footer>span{font-size:10px}}

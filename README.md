@@ -10,6 +10,8 @@
 
 - CPU対戦：簡易AIと対戦。
 - 同一端末2人対戦：手札の受け渡し画面つき。
+- **相手の手牌枚数**：卓の向こう側に、CPUまたは相手の伏せ牌を枚数分表示。牌の表面は非公開。
+- **終局時の盤面確認**：精算結果の「終局時の盤面を見る」で、場に残った牌・開放端・残り手札を見返し、得点画面に戻れます。
 - ルールは画面内の「遊び方」から確認可能。
 
 ### 対局形式（Ver 0.4 試遊ルール）
@@ -77,6 +79,7 @@ npm run build:standalone
 - `site/standalone.html` — 単体起動できるHTML
 - `scripts/build-standalone.mjs` — 単体HTML生成
 - `tests/match.test.mjs` — 対局形式・得点移動テスト
+- `tests/board-review.test.mjs` — 相手牌の秘匿表示・終局盤面レビューのテスト
 - `.github/workflows/pages.yml` — GitHub Pages自動デプロイ（テスト後に公開）
 
 ## 注意

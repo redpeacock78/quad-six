@@ -28,10 +28,10 @@ export function chooseAIAction(game) {
     if (!options.length) return { type: 'passAttach' };
     const scored = options.map(move => {
       const points = move.placements.reduce((sum, v) => sum + v.a + v.b, 0);
-      const endValue = move.side === 'left' ? move.placements[0].a : move.side === 'right' ? move.placements[move.placements.length - 1].b : 3;
+      const endValue = move.endValue;
       const compatible = hand.filter(id => !move.placements.some(v => v.id === id))
         .filter(id => { const t = getTile(game, id); return t.a === endValue || t.b === endValue; }).length;
-      return { move, value: move.placements.length * 22 + points * .7 + compatible * 3 + (move.special ? 11 : 0) + Math.random() * 2 };
+      return { move, value: move.placements.length * 22 + points * .7 + compatible * 3 + (move.special ? 11 : 0) + move.placements.filter(v=>v.a===v.b).length*3 + Math.random() * 2 };
     });
     scored.sort((a, b) => b.value - a.value);
     const move = scored[0].move;

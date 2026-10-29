@@ -8,14 +8,17 @@ export const MATCH_FORMATS = Object.freeze({
 });
 export const STARTING_POINTS = 250;
 
-export function createMatch({ format = 'single', mode = 'cpu', seed = Date.now(), initialHand = 9 } = {}) {
+export function createMatch({ format = 'single', mode = 'cpu', seed = Date.now(), initialHand = 9, startingPlayer = null } = {}) {
   if (!MATCH_FORMATS[format]) throw new Error('未対応の対局形式です');
   if (!['cpu', 'local'].includes(mode)) throw new Error('未対応の対戦モードです');
+  // Only the first game draws the parent at random. Later games alternate.
+  if (startingPlayer === null) startingPlayer = Math.floor(Math.random() * 2);
+  if (startingPlayer !== 0 && startingPlayer !== 1) throw new Error('最初の親は0か1で指定してください');
   return {
     format, mode, initialHand, totalGames: MATCH_FORMATS[format].games,
-    gameNumber: 1, points: [STARTING_POINTS, STARTING_POINTS],
+    gameNumber: 1, initialStarter: startingPlayer, points: [STARTING_POINTS, STARTING_POINTS],
     history: [], settled: false, complete: false,
-    game: newGame({ mode, seed, initialHand, startingPlayer: 0 })
+    game: newGame({ mode, seed, initialHand, startingPlayer })
   };
 }
 
@@ -44,7 +47,7 @@ export function nextMatchGame(match, seed = Date.now()) {
   if (match.complete) throw new Error('対局はすでに終了しています');
   match.gameNumber++;
   match.game = newGame({ mode: match.mode, initialHand: match.initialHand, seed,
-    startingPlayer: (match.gameNumber - 1) % 2 });
+    startingPlayer: (match.initialStarter + match.gameNumber - 1) % 2 });
   match.settled = false;
   return match.game;
 }

@@ -525,14 +525,17 @@ const MATCH_FORMATS = Object.freeze({
 });
 const STARTING_POINTS = 250;
 
-function createMatch({ format = 'single', mode = 'cpu', seed = Date.now(), initialHand = 9 } = {}) {
+function createMatch({ format = 'single', mode = 'cpu', seed = Date.now(), initialHand = 9, startingPlayer = null } = {}) {
   if (!MATCH_FORMATS[format]) throw new Error('未対応の対局形式です');
   if (!['cpu', 'local'].includes(mode)) throw new Error('未対応の対戦モードです');
+  // Only the first game draws the parent at random. Later games alternate.
+  if (startingPlayer === null) startingPlayer = Math.floor(Math.random() * 2);
+  if (startingPlayer !== 0 && startingPlayer !== 1) throw new Error('最初の親は0か1で指定してください');
   return {
     format, mode, initialHand, totalGames: MATCH_FORMATS[format].games,
-    gameNumber: 1, points: [STARTING_POINTS, STARTING_POINTS],
+    gameNumber: 1, initialStarter: startingPlayer, points: [STARTING_POINTS, STARTING_POINTS],
     history: [], settled: false, complete: false,
-    game: newGame({ mode, seed, initialHand, startingPlayer: 0 })
+    game: newGame({ mode, seed, initialHand, startingPlayer })
   };
 }
 
@@ -561,7 +564,7 @@ function nextMatchGame(match, seed = Date.now()) {
   if (match.complete) throw new Error('対局はすでに終了しています');
   match.gameNumber++;
   match.game = newGame({ mode: match.mode, initialHand: match.initialHand, seed,
-    startingPlayer: (match.gameNumber - 1) % 2 });
+    startingPlayer: (match.initialStarter + match.gameNumber - 1) % 2 });
   match.settled = false;
   return match.game;
 }
@@ -682,7 +685,7 @@ function scoreCard(p) {
 }
 function matchPanel() {
   if (!match) return '';
-  return `<section class="panel match-panel"><div class="side-section"><div class="side-title"><h3>${MATCH_FORMATS[match.format].label} · 第${match.gameNumber}/${match.totalGames}ゲーム</h3><span class="small-label">持ち点 ${STARTING_POINTS}点開始</span></div>
+  return `<section class="panel match-panel"><div class="side-section"><div class="side-title"><h3>${MATCH_FORMATS[match.format].label} · 第${match.gameNumber}/${match.totalGames}ゲーム</h3><span class="small-label">最初の親：${nameOf(match.initialStarter)} · 持ち点 ${STARTING_POINTS}点開始</span></div>
     <div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div>
     <p class="footnote">ゲーム終了時に得点差を移動 · 現在のゲームの得点は下の得点ボードに表示</p>
     ${match.history.length?`<details class="drawer"><summary>対局履歴（${match.history.length}ゲーム）</summary><table class="ledger"><thead><tr><th>ゲーム</th><th>得点差</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${match.history.map(r=>`<tr><td>${r.game}</td><td>${r.delta>0?'+':''}${r.delta}</td><td>${r.points[0]}</td><td>${r.points[1]}</td></tr>`).join('')}</tbody></table></details>`:''}</div></section>`;
@@ -720,12 +723,12 @@ function headerMarkup() {
 }
 function introDomino(a,b,extra='') { return `<div class="intro-domino" ${extra}>${dominoMarkup(a,b,{large:true})}</div>`; }
 function homeMarkup(){
-  return `<main class="intro"><div class="intro-copy"><span class="eyebrow">A GAME OF FIFTY-SIX TILES</span><h1>二人で競う。<br><em>五十六の選択。</em></h1><p class="lead">天九の「役」と、ドミノの「接続」。<br>上書きで競り、牌を繋ぎ、山の行方を読む。<br>道具は56枚のドミノと紙と鉛筆だけ。<br>古くて新しい、2人用の知略ゲーム。</p><div class="format-picker" role="group" aria-label="対局形式"><span class="eyebrow">対局形式を選択</span><div class="format-buttons">${Object.entries(MATCH_FORMATS).map(([id, f])=>`<button class="button format-choice ${selectedFormat===id?'chosen':''}" data-action="select-format" data-format="${id}" aria-pressed="${selectedFormat===id}">${f.label}<small>${f.games}ゲーム</small></button>`).join('')}</div><p class="help-text">初期持ち点は各250点 · 各ゲームの得点差を移動 · 先手はゲームごとに交代</p></div><div class="intro-actions"><button class="button primary large" data-action="start-cpu">CPUと対戦する →</button><button class="button large" data-action="start-local">同じ端末で2人対戦</button></div><div class="intro-feature"><div><b>56</b>DOMINO TILES</div><div><b>9</b>STARTING HAND</div><div><b>2</b>PLAYERS</div><div><b>0</b>INSTALL REQUIRED</div></div></div><div class="intro-visual"><div class="intro-mandala"></div>${introDomino(6,6)}${introDomino(0,0)}${introDomino(5,3)}${introDomino(2,4)}<div class="intro-title"><div class="kanji">賽棋</div><div class="roman">QUAD6</div><div class="intro-foot">A WAR OF WITS</div></div></div></main>`;
+  return `<main class="intro"><div class="intro-copy"><span class="eyebrow">A GAME OF FIFTY-SIX TILES</span><h1>二人で競う。<br><em>五十六の選択。</em></h1><p class="lead">天九の「役」と、ドミノの「接続」。<br>上書きで競り、牌を繋ぎ、山の行方を読む。<br>道具は56枚のドミノと紙と鉛筆だけ。<br>古くて新しい、2人用の知略ゲーム。</p><div class="format-picker" role="group" aria-label="対局形式"><span class="eyebrow">対局形式を選択</span><div class="format-buttons">${Object.entries(MATCH_FORMATS).map(([id, f])=>`<button class="button format-choice ${selectedFormat===id?'chosen':''}" data-action="select-format" data-format="${id}" aria-pressed="${selectedFormat===id}">${f.label}<small>${f.games}ゲーム</small></button>`).join('')}</div><p class="help-text">初期持ち点は各250点 · 初回の親はランダム · 以後はゲームごとに交代</p></div><div class="intro-actions"><button class="button primary large" data-action="start-cpu">CPUと対戦する →</button><button class="button large" data-action="start-local">同じ端末で2人対戦</button></div><div class="intro-feature"><div><b>56</b>DOMINO TILES</div><div><b>9</b>STARTING HAND</div><div><b>2</b>PLAYERS</div><div><b>0</b>INSTALL REQUIRED</div></div></div><div class="intro-visual"><div class="intro-mandala"></div>${introDomino(6,6)}${introDomino(0,0)}${introDomino(5,3)}${introDomino(2,4)}<div class="intro-title"><div class="kanji">賽棋</div><div class="roman">QUAD6</div><div class="intro-foot">A WAR OF WITS</div></div></div></main>`;
 }
 function helpMarkup() {
   const examples = MARTIAL.map(([name, a, b]) => `<tr><td>${name}</td><td>[${a.split('-').join('｜')}] + [${b.split('-').join('｜')}]</td></tr>`).join('');
   return `<div class="overlay" role="presentation" data-action="dismiss-help"><div class="modal" role="dialog" aria-modal="true" aria-label="ルールブック"><span class="eyebrow">HOW TO PLAY · VER 0.3</span><h2>賽棋のあそびかた</h2><p>2人に9枚ずつ配ってスタート · 役を作って場に出し、その後は数字を繋ぐ · 手札をなくすか山札が尽きたら精算するよ</p>
-  <h3>対局形式と持ち点</h3><p>一局戦＝1ゲーム、東風戦＝4ゲーム、半荘戦＝8ゲーム。各250点から開始し、各ゲーム終了時に（自分の得点－相手の得点）の差を持ち点として移動するよ。ゲームごとに56枚を混ぜ直し、先手を交代するよ。全ゲーム終了後の持ち点が高い方の勝ち。飛び終了はなしだよ。</p>
+  <h3>対局形式と持ち点</h3><p>一局戦＝1ゲーム、東風戦＝4ゲーム、半荘戦＝8ゲーム。各250点から開始し、各ゲーム終了時に（自分の得点－相手の得点）の差を持ち点として移動するよ。最初の親はランダムに決め、以後はゲームごとに先手を交代するよ。ゲームごとに56枚を混ぜ直すよ。全ゲーム終了後の持ち点が高い方の勝ち。飛び終了はなしだよ。</p>
   <h3>① 平場：天九</h3><p>先攻が2枚で役を出し、相手はより強い役で上書きできるよ · 上書きされた牌は公開除外されるけど、得点は残る · 上書きが終わったら最後の役を起点に付札へ進むよ · 本場は最後の上書き者が総取りだよ</p>
   <table class="mini-table"><tr><th>階級</th><th>役</th><th>役点</th></tr><tr><td>最高</td><td>至尊 [6｜6] + [0｜0]</td><td>20</td></tr><tr><td>上</td><td>文牌：同じ牌2枚</td><td>15</td></tr><tr><td>中</td><td>武牌：次の指定9組</td><td>10</td></tr><tr><td>下</td><td>雑：その他の2枚</td><td>5</td></tr></table>
   <h3>武牌9種の役表</h3><table class="mini-table"><tr><th>役</th><th>2枚組</th></tr>${examples}</table>
@@ -799,6 +802,8 @@ function start(mode, format = selectedFormat) {
   busy = false;
   resetTurnSelection();
   render();
+  // The CPU may be drawn as the opening parent; let it make the first bid.
+  scheduleCPU();
 }
 function settleIfFinished() {
   if (match && game.phase === 'finished') settleMatchGame(match);

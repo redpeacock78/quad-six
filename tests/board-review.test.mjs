@@ -81,8 +81,8 @@ test('finished match toggles from score overlay to final table and back without 
   assert.match(ui.app.innerHTML,/class="board-graph"/);
   assert.match(ui.app.innerHTML,/開放端 <b>2か所<\/b>/);
   assert.match(ui.app.innerHTML,/数字 <b>2・1<\/b>/);
-  assert.match(ui.app.innerHTML,/左端（端点1・2）/);
-  assert.match(ui.app.innerHTML,/右端（端点2・1）/);
+  assert.match(ui.app.innerHTML,/左（端点1・2）/);
+  assert.match(ui.app.innerHTML,/右（端点2・1）/);
   assert.match(ui.app.innerHTML,/精算結果に戻る/);
   assert.doesNotMatch(ui.app.innerHTML,/data-action="open"/);
   ui.click('back-to-result');

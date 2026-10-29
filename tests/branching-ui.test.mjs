@@ -40,7 +40,9 @@ test('the board visually renders a perpendicular double with three numbered open
   assert.match(app.innerHTML,/width="46" height="72"/);
   for(const number of [1,2,3]) assert.match(app.innerHTML,new RegExp(`端点${number}`));
   assert.equal(game.board.ports.length,3);
-  const vb=app.innerHTML.match(/<svg[^>]*viewBox="0 0 (\d+) (\d+)"/);
+  const graph=app.innerHTML.split('class="board-graph"')[1];
+  assert.ok(graph, 'graph section must exist');
+  const vb=graph.match(/<svg[^>]*viewBox="0 0 (\d+) (\d+)"/);
   assert.ok(vb, 'graph must have a valid SVG viewport');
   const width=Number(vb[1]),height=Number(vb[2]);
   const markers=[...app.innerHTML.matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)" r="24"/g)];

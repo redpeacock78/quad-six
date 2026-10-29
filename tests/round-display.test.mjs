@@ -63,3 +63,27 @@ test('hanchan score history and final recap show South round names',async()=>{
   assert.match(app.innerHTML,/MATCH SET/);
   assert.match(app.innerHTML,/東1局 0本場/);
 });
+
+test('mobile match panel uses 東N局 M本場 for screenshot-like five-game history',async()=>{
+  const m=matchLib.createMatch({format:'tonpu',mode:'local',seed:27,startingPlayer:0});
+  endGame(m,0); // 東1局 0本場 -> repeat
+  matchLib.nextMatchGame(m,30);
+  endGame(m,1); // 東1局 1本場 -> 東2局
+  matchLib.nextMatchGame(m,31);
+  endGame(m,1); // 東2局 0本場 -> repeat
+  matchLib.nextMatchGame(m,32);
+  endGame(m,1); // 東2局 1本場 -> repeat
+  matchLib.nextMatchGame(m,33);
+  endGame(m,0); // 東2局 2本場 -> 東3局
+  matchLib.nextMatchGame(m,34);
+  assert.equal(m.gameNumber,6);
+  assert.equal(m.handNumber,3);
+  const {app}=await makeUI(m);
+  assert.match(app.innerHTML,/<h3 class="match-round-name">東3局 0本場<\/h3>/);
+  assert.match(app.innerHTML,/東風戦 · 第6ゲーム/);
+  assert.match(app.innerHTML,/<th>局<\/th>/);
+  assert.match(app.innerHTML,/<strong>東1局 0本場<\/strong>/);
+  assert.match(app.innerHTML,/<strong>東1局 1本場<\/strong>/);
+  assert.match(app.innerHTML,/<strong>東2局 2本場<\/strong>/);
+  assert.doesNotMatch(app.innerHTML,/3\/4親番/);
+});

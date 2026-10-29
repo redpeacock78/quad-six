@@ -413,7 +413,10 @@ function dispatch(game, action) {
       }
       const flips = action.flips || [false, false];
       const roots=ids.map((id,i)=>oriented(game,id,Boolean(flips[i])));
-      game.board={items:roots,splitIndex:1,ports:initialPorts(roots),chosenSide:null};
+      // Only a Supreme opening keeps BOTH starting roots playable, even
+      // after an ordinary one-sided attachment. Other roles lock to one side.
+      game.board={items:roots,splitIndex:1,ports:initialPorts(roots),
+        chosenSide:role.tier==='supreme'?'supreme':null};
       removeHand(game, p, ids);
       game.openingRole = role;
       award(game, p, 'role', role.points);
@@ -807,7 +810,7 @@ function actionPanel() {
     const moves = attachmentMoves(game, selected);
     const activeMove = activeAttachmentMove(moves);
     return `<div class="action-head"><strong>付札を出す</strong><span class="small-label">ドミノ</span></div>
-      <p class="help-text">① 手札から1〜2枚選ぶ → ② 盤面の位置と端点番号で接続先を選ぶ → ③「付札を場に出す」で確定${game.final?' · 最終局のパスは即脱落':''}</p>
+      <p class="help-text">① 手札から1〜2枚選ぶ → ② 盤面の位置と端点番号で接続先を選ぶ → ③「付札を場に出す」で確定${game.openingRole?.tier==='supreme'?' · 至尊の平場は左右両側OK':''}${game.final?' · 最終局のパスは即脱落':''}</p>
       ${movesMarkup(moves, activeMove, graphLayout(game.board))}
       <div class="action-buttons attachment-actions"><button class="button primary" data-action="attach" ${activeMove?'':'disabled'}>付札を場に出す ↗</button><button class="button quiet" data-action="passAttach">${game.final?'パスして脱落':'パス · 1枚引く'}</button>${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
@@ -1000,7 +1003,7 @@ function gameMarkup() {
   return `<section class="game-layout"><div class="main-column">
     ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · ${currentRoundName()} · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
     <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?`${currentRoundName()} · 最終出牌`:`${currentRoundName()} · 第${game.round}平場`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
-    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>開放端 <b>${ports.length}か所</b></span><span>同じ数字の枝に接続 · 盤面の位置と端点番号で選択</span><span>数字 <b>${ports.map(p=>p.pip).join('・')||'—'}</b></span></div></section>
+    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>開放端 <b>${ports.length}か所</b></span><span>${game.openingRole?.tier==='supreme'?'至尊：左右両側の起点が有効':'同じ数字の枝に接続 · 盤面の位置と端点番号で選択'}</span><span>数字 <b>${ports.map(p=>p.pip).join('・')||'—'}</b></span></div></section>
     <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / ${game.phase==='adjustment'?Math.min(game.hands[current].length,game.stock.length):2}`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
    </div>${sideMarkup()}</section>`;
 }
@@ -1019,7 +1022,7 @@ function helpMarkup() {
   <table class="mini-table"><tr><th>階級</th><th>役</th><th>役点</th></tr><tr><td>最高</td><td>至尊 [6｜6] + [0｜0]</td><td>20</td></tr><tr><td>上</td><td>文牌：同じ牌2枚</td><td>15</td></tr><tr><td>中</td><td>武牌：次の指定9組</td><td>10</td></tr><tr><td>下</td><td>雑：その他の2枚</td><td>5</td></tr></table>
   <h3>武牌9種の役表</h3><table class="mini-table"><tr><th>役</th><th>2枚組</th></tr>${examples}</table>
   <p class="footnote">文牌は原則ピップ合計で比較するよ · ただし [0｜0] の対子だけは [6｜6] の対子に勝つ特例があるよ · 雑同士のレイズは不可としているよ</p>
-  <h3>② 付札：ドミノ</h3><p>最初の付札で左右どちらかの起点を選ぶよ · その後の通常付札は選んだ側の枝だけに接続（反対側の起点は閉じる） · 1手で1枚か2枚を同じ枝に連続接続するよ · ゾロ目のダブル牌を置くと縦置きになり、接続した方向以外の3方向が開放されるよ · 枝は全部独立して伸ばせる · 至尊 [0｜0]＋[6｜6] だけは例外として数字0と6の2つの開放端へ同時に付札できるよ</p>
+  <h3>② 付札：ドミノ</h3><p>最初の付札で左右どちらかの起点を選ぶよ · その後の通常付札は選んだ側の枝だけに接続（反対側の起点は閉じる） · ただし平場役が至尊 [6｜6]＋[0｜0] の場合は左右の起点を閉じず、両側から付札を続けられるよ · 1手で1枚か2枚を同じ枝に連続接続するよ · ゾロ目のダブル牌を置くと縦置きになり、接続した方向以外の3方向が開放されるよ · 枝は全部独立して伸ばせる · 至尊 [0｜0]＋[6｜6] だけは例外として数字0と6の2つの開放端へ同時に付札できるよ</p>
   <h3>③ パスと局の終了</h3><p>通常の付札でパスすると山札から1枚引くよ · 両者が連続パスしたら場の牌をすべて公開除外し、第N平場とレイズ数をリセットするよ（麻雀式の東N局・南N局とは別） · 局間は1枚ドロー / 手札から任意枚数の公開交換 / 何もしない、から各自1回選べるよ · 交換は手札全部までOK（山札の残数が上限） · 除外した牌は山札に戻さず同数を補充するよ</p>
   <h3>④ 終局と得点</h3><p>手札0枚なら早アガリで即終了、山札0枚なら最後の付札を続けて精算するよ · 最終付札中のパスは脱落になるよ</p>
   <table class="mini-table"><tr><th>項目</th><th>計算</th></tr><tr><td>役とピップ</td><td>出したときに加算</td></tr><tr><td>レイズ点</td><td>平場のレイズ回数×3点を最終レイズ者へ</td></tr><tr><td>本場点</td><td>東風・半荘のみ。早アガリした側に5×現在の本場数</td></tr><tr><td>早アガリ</td><td>+15点</td></tr><tr><td>山を最後に引いた人</td><td>−15点（強制補充を除く）</td></tr><tr><td>残った手札</td><td>ピップ合計÷2、切り上げで減点</td></tr></table>

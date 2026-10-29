@@ -7,7 +7,7 @@ import {
 function setup({ left = '0-4', right = '3-5', leftFlip = true, rightFlip = true } = {}) {
   const g = newGame({seed:92,startingPlayer:0});
   const find = k => g.tiles.filter(t => tileKey(t) === k).map(t => t.id);
-  const ids = [find(left)[0],find(right)[0]];
+  const ids = [find(left)[0],find(right)[left === right ? 1 : 0]];
   g.hands[0] = g.tiles.map(t => t.id);
   g.hands[1] = [];
   dispatch(g,{type:'open',ids,flips:[leftFlip,rightFlip]});

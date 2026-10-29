@@ -87,7 +87,7 @@ test('a spinner connected to the upper branch carries up/left/right direction la
   click('choose-attachment',{key:choice});
   click('attach');
   const born=game.board.ports.filter(p=>p.owner===remaining.id);
-  assert.deepEqual(born.map(p=>p.direction),['up','left','right']);
+  assert.equal(born.map(p=>p.direction).join(','),'up,left,right');
   assert.ok(app.innerHTML.includes('上端（端点'));
   assert.ok(app.innerHTML.includes('左端（端点'));
   assert.ok(app.innerHTML.includes('右端（端点'));

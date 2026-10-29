@@ -1,9 +1,13 @@
 import { newGame, dispatch, roleOf, isStronger, attachmentMoves, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js';
 import { chooseAIAction } from './ai.js';
+import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner } from './match.js';
 
 
 const $app = document.getElementById('app');
 let game = null;
+let match = null;
+let selectedFormat = 'single';
+let cpuTimer = null;
 let selected = [];
 let flipped = {};
 let helpOpen = false;
@@ -94,10 +98,17 @@ function phaseLabel() {
 function scoreCard(p) {
   return `<div class="score-person ${game.current===p&&game.phase!=='finished'?'active':''}"><div><div class="player-name">${p===0?'◈':'◇'} ${nameOf(p)} ${game.finalOut[p]?'· 脱落':''}</div><div class="player-detail">手札 ${game.hands[p].length}枚 / 役 ${game.scores[p].role} / 付札等 ${game.scores[p].pips}</div></div><div class="points">${totalScore(game,p)}</div></div>`;
 }
+function matchPanel() {
+  if (!match) return '';
+  return `<section class="panel match-panel"><div class="side-section"><div class="side-title"><h3>${MATCH_FORMATS[match.format].label} · 第${match.gameNumber}/${match.totalGames}ゲーム</h3><span class="small-label">持ち点 ${STARTING_POINTS}点開始</span></div>
+    <div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div>
+    <p class="footnote">ゲーム終了時に得点差を移動 · 現在のゲームの得点は下の得点ボードに表示</p>
+    ${match.history.length?`<details class="drawer"><summary>対局履歴（${match.history.length}ゲーム）</summary><table class="ledger"><thead><tr><th>ゲーム</th><th>得点差</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${match.history.map(r=>`<tr><td>${r.game}</td><td>${r.delta>0?'+':''}${r.delta}</td><td>${r.points[0]}</td><td>${r.points[1]}</td></tr>`).join('')}</tbody></table></details>`:''}</div></section>`;
+}
 function sideMarkup() {
   const rows = game.rounds.map(r => `<tr><td>第${r.round}局</td><td>${r.role[0]+r.pips[0]+r.honba[0]}</td><td>${r.role[1]+r.pips[1]+r.honba[1]}</td></tr>`).join('');
   const closed = game.discard.slice(-10).reverse();
-  return `<aside class="side-column">
+  return `<aside class="side-column">${matchPanel()}
   <section class="panel"><div class="side-section"><div class="side-title"><h3>得点ボード</h3><span class="small-label">SCORE</span></div>${scoreCard(0)}${scoreCard(1)}<div class="round-lbl">※ 終局時にボーナス・残牌点を精算するよ</div></div>
   <div class="side-section"><div class="side-title"><h3>進行状況</h3></div><div class="side-stats"><div class="statbox"><div class="number">${game.stock.length}</div><div class="label">山札</div></div><div class="statbox"><div class="number">${game.discard.length}</div><div class="label">公開除外</div></div><div class="statbox"><div class="number">${game.honba}</div><div class="label">本場</div></div></div>
   <details class="drawer"><summary>局別スコアと内訳を表示</summary><table class="ledger"><thead><tr><th>局</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${rows}<tr class="total"><td>累計</td><td>${totalScore(game,0)}</td><td>${totalScore(game,1)}</td></tr></tbody></table><p class="footnote">本場は最終上書き者が総取り · 調整中の得点は含まれないよ</p></details>
@@ -118,15 +129,16 @@ function gameMarkup() {
    </div>${sideMarkup()}</section>`;
 }
 function headerMarkup() {
-  return `<header class="masthead"><div class="brand"><div class="brand-symbol">賽</div><div><div class="brand-text">賽棋 <span style="font-size:13px;color:var(--gold);letter-spacing:.05em">QUAD6</span></div><div class="brand-sub">THE DOMINO STRATEGY GAME</div></div></div><div class="header-actions">${game?`<span class="pill">${game.mode==='cpu'?'VS CPU':'LOCAL 2P'}</span>`:''}<button class="button quiet tight" data-action="help">ルール</button>${game?'<button class="button tight" data-action="restart">新しい対局</button>':''}</div></header>`;
+  return `<header class="masthead"><div class="brand"><div class="brand-symbol">賽</div><div><div class="brand-text">賽棋 <span style="font-size:13px;color:var(--gold);letter-spacing:.05em">QUAD6</span></div><div class="brand-sub">THE DOMINO STRATEGY GAME</div></div></div><div class="header-actions">${game?`<span class="pill">${MATCH_FORMATS[match.format].label} · ${game.mode==='cpu'?'VS CPU':'LOCAL 2P'}</span>`:''}<button class="button quiet tight" data-action="help">ルール</button>${game?'<button class="button tight" data-action="restart">新しい対局</button>':''}</div></header>`;
 }
 function introDomino(a,b,extra='') { return `<div class="intro-domino" ${extra}>${dominoMarkup(a,b,{large:true})}</div>`; }
 function homeMarkup(){
-  return `<main class="intro"><div class="intro-copy"><span class="eyebrow">A GAME OF FIFTY-SIX TILES</span><h1>二人で競う。<br><em>五十六の選択。</em></h1><p class="lead">天九の「役」と、ドミノの「接続」。<br>上書きで競り、牌を繋ぎ、山の行方を読む。<br>道具は56枚のドミノと紙と鉛筆だけ。<br>古くて新しい、2人用の知略ゲーム。</p><div class="intro-actions"><button class="button primary large" data-action="start-cpu">CPUと対戦する →</button><button class="button large" data-action="start-local">同じ端末で2人対戦</button></div><div class="intro-feature"><div><b>56</b>DOMINO TILES</div><div><b>9</b>STARTING HAND</div><div><b>2</b>PLAYERS</div><div><b>0</b>INSTALL REQUIRED</div></div></div><div class="intro-visual"><div class="intro-mandala"></div>${introDomino(6,6)}${introDomino(0,0)}${introDomino(5,3)}${introDomino(2,4)}<div class="intro-title"><div class="kanji">賽棋</div><div class="roman">QUAD6</div><div class="intro-foot">A WAR OF WITS</div></div></div></main>`;
+  return `<main class="intro"><div class="intro-copy"><span class="eyebrow">A GAME OF FIFTY-SIX TILES</span><h1>二人で競う。<br><em>五十六の選択。</em></h1><p class="lead">天九の「役」と、ドミノの「接続」。<br>上書きで競り、牌を繋ぎ、山の行方を読む。<br>道具は56枚のドミノと紙と鉛筆だけ。<br>古くて新しい、2人用の知略ゲーム。</p><div class="format-picker" role="group" aria-label="対局形式"><span class="eyebrow">対局形式を選択</span><div class="format-buttons">${Object.entries(MATCH_FORMATS).map(([id, f])=>`<button class="button format-choice ${selectedFormat===id?'chosen':''}" data-action="select-format" data-format="${id}" aria-pressed="${selectedFormat===id}">${f.label}<small>${f.games}ゲーム</small></button>`).join('')}</div><p class="help-text">初期持ち点は各250点 · 各ゲームの得点差を移動 · 先手はゲームごとに交代</p></div><div class="intro-actions"><button class="button primary large" data-action="start-cpu">CPUと対戦する →</button><button class="button large" data-action="start-local">同じ端末で2人対戦</button></div><div class="intro-feature"><div><b>56</b>DOMINO TILES</div><div><b>9</b>STARTING HAND</div><div><b>2</b>PLAYERS</div><div><b>0</b>INSTALL REQUIRED</div></div></div><div class="intro-visual"><div class="intro-mandala"></div>${introDomino(6,6)}${introDomino(0,0)}${introDomino(5,3)}${introDomino(2,4)}<div class="intro-title"><div class="kanji">賽棋</div><div class="roman">QUAD6</div><div class="intro-foot">A WAR OF WITS</div></div></div></main>`;
 }
 function helpMarkup() {
   const examples = MARTIAL.map(([name, a, b]) => `<tr><td>${name}</td><td>[${a.split('-').join('｜')}] + [${b.split('-').join('｜')}]</td></tr>`).join('');
   return `<div class="overlay" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-label="ルールブック"><span class="eyebrow">HOW TO PLAY · VER 0.3</span><h2>賽棋のあそびかた</h2><p>2人に9枚ずつ配ってスタート · 役を作って場に出し、その後は数字を繋ぐ · 手札をなくすか山札が尽きたら精算するよ</p>
+  <h3>対局形式と持ち点</h3><p>一局戦＝1ゲーム、東風戦＝4ゲーム、半荘戦＝8ゲーム。各250点から開始し、各ゲーム終了時に（自分の得点－相手の得点）の差を持ち点として移動するよ。ゲームごとに56枚を混ぜ直し、先手を交代するよ。全ゲーム終了後の持ち点が高い方の勝ち。飛び終了はなしだよ。</p>
   <h3>① 平場：天九</h3><p>先攻が2枚で役を出し、相手はより強い役で上書きできるよ · 上書きされた牌は公開除外されるけど、得点は残る · 上書きが終わったら最後の役を起点に付札へ進むよ · 本場は最後の上書き者が総取りだよ</p>
   <table class="mini-table"><tr><th>階級</th><th>役</th><th>役点</th></tr><tr><td>最高</td><td>至尊 [6｜6] + [0｜0]</td><td>20</td></tr><tr><td>上</td><td>文牌：同じ牌2枚</td><td>15</td></tr><tr><td>中</td><td>武牌：次の指定9組</td><td>10</td></tr><tr><td>下</td><td>雑：その他の2枚</td><td>5</td></tr></table>
   <h3>武牌9種の役表</h3><table class="mini-table"><tr><th>役</th><th>2枚組</th></tr>${examples}</table>

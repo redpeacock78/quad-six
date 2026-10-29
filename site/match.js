@@ -9,6 +9,23 @@ export const MATCH_FORMATS = Object.freeze({
 export const STARTING_POINTS = 250;
 export const TABLE_HONBA_UNIT = 5;
 
+/**
+ * Mahjong-style designation for a scheduled hand.
+ * Tonpu: 東1局..東4局; hanchan: 東1局..東4局, 南1局..南4局.
+ * Dealer continuations retain the same designation and increment honba.
+ */
+export function matchRoundName(format, handNumber, honba = 0) {
+  if (!MATCH_FORMATS[format]) throw new Error('未対応の対局形式です');
+  if (format === 'single') return '一局戦';
+  if (!Number.isInteger(handNumber) || handNumber < 1 || handNumber > MATCH_FORMATS[format].games) {
+    throw new Error('親番の番号が範囲外です');
+  }
+  if (!Number.isInteger(honba) || honba < 0) throw new Error('本場数が不正です');
+  const wind = handNumber <= 4 ? '東' : '南';
+  const number = ((handNumber - 1) % 4) + 1;
+  return `${wind}${number}局 ${honba}本場`;
+}
+
 /** The first dealer is random; each subsequent scheduled hand changes dealer. */
 export function createMatch({ format = 'single', mode = 'cpu', seed = Date.now(), initialHand = 9, startingPlayer = null } = {}) {
   if (!MATCH_FORMATS[format]) throw new Error('未対応の対局形式です');

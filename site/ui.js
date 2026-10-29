@@ -154,7 +154,7 @@ function graphLayout(board) {
     portByOwner.get(p.owner).push(p);
   }
   const gapX=122,gapY=95;
-  const positions=new Map(),portPositions=new Map(),links=[];
+  const positions=new Map(),portPositions=new Map();
   let maxLeft=0,maxRight=0;
   const layout=(root,side)=>{
     let row=0,maxDepth=0;

@@ -62,3 +62,6 @@
 
 /* Attachment uses the same explicit confirmation interaction as opening. */
 @media(max-width:670px){.attachment-actions .button.primary{flex:1 0 100%;min-height:50px;font-size:14px}.attachment-actions .button.quiet{flex:1;min-height:44px}.move-option{min-height:56px}}
+
+/* Poker-style multi-tile adjustment: keep the exchange confirmation prominent. */
+@media(max-width:670px){.adjustment-actions .button.primary{flex:1 0 100%;min-height:50px;font-size:14px}.adjustment-actions .button{min-height:44px}.adjustment-actions .button[data-action="select-all-exchange"]{flex:1 0 100%}}

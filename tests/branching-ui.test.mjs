@@ -81,7 +81,7 @@ test('player can explicitly select among all three spinner branches',()=>{
 
 test('a spinner connected to the upper branch carries up/left/right direction labels',()=>{
   const {app,ctx,click,game}=fixture();
-  const remaining=game.tiles.find(t=>tileKey(t)==='4-4' && game.hands[0].includes(t.id));
+  const remaining=game.tiles.find(t=>t.a===4 && t.b===4 && game.hands[0].includes(t.id));
   assert.ok(remaining);
   click('select',{id:String(remaining.id)});
   const choice=runInContext(`attachmentMoves(game,[${remaining.id}]).find(m=>m.direction==='up').key`,ctx);

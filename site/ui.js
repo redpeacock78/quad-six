@@ -92,7 +92,7 @@ function opponentHandMarkup(player) {
   </section>`;
 }
 function boardMarkup() {
-  if (!game.board) return `<div class="board-empty"><div class="symbol">◇</div><strong>盤面はまだ空だよ</strong><small>平場で最初の役を置いて始めよう</small></div>`;
+  if (!game.board) return `<div class="board-empty"><div class="symbol">◇</div><strong>${game.phase==='finished'?'終局時の盤面は空です':'盤面はまだ空だよ'}</strong><small>${game.phase==='finished'?'このゲームで最後に場が流れた状態です':'平場で最初の役を置いて始めよう'}</small></div>`;
   const items = game.board.items, split = game.board.splitIndex;
   const leftItems = items.slice(0,split), rightItems=items.slice(split);
   const renderItems = (group) => group.map(v=>dominoMarkup(v.a,v.b)).join('');
@@ -137,8 +137,8 @@ function gameMarkup() {
   const ends=endsOf();
   return `<section class="game-layout"><div class="main-column">
     ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
-    <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?'FINAL ROUND':`ROUND ${String(game.round).padStart(2,'0')}`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${current===1?'cpu':''}"></i>${nameOf(current)}の番</div></div>
-    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>左端 <b>${ends?ends[0]:'—'}</b></span><span>通常の付札は同じ数字に接続</span><span>右端 <b>${ends?ends[1]:'—'}</b></span></div></section>
+    <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?'FINAL ROUND':`ROUND ${String(game.round).padStart(2,'0')}`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
+    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>左端 <b>${ends?ends[0]:'—'}</b></span><span>通常の付札は同じ数字に接続</span><span>右端 <b>${ends?ends[1]:'—'}</b></span></div></section>
     <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / 2`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
    </div>${sideMarkup()}</section>`;
 }

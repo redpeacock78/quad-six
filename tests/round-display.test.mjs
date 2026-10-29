@@ -10,7 +10,7 @@ async function makeUI(match) {
     .replace(/^import\s+[^\n]+\n/gm,'');
   const app={innerHTML:'',addEventListener(){}};
   const deps={...engine,...ai,...matchLib};
-  const names='newGame dispatch roleOf isStronger attachmentMoves getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner matchRoundName'.split(' ');
+  const names='newGame dispatch roleOf isStronger attachmentMoves boardPorts getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner matchRoundName'.split(' ');
   const factory=new Function('deps','document','window',
     'const {'+names.join(',')+'}=deps;\n'+source+
     '\nreturn {mount(m){match=m;game=m.game;handoff=false;render()},refresh(){render()}};');

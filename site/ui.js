@@ -12,6 +12,7 @@ let selected = [];
 let flipped = {};
 let helpOpen = false;
 let handoff = false;
+let inspectFinalBoard = false;
 let busy = false;
 let toastMessage = '';
 let toastTimer = null;
@@ -38,12 +39,13 @@ function tileDisplay(id, { flip = false, ...opts } = {}) {
   const tile = getTile(game,id);
   return dominoMarkup(flip ? tile.b : tile.a, flip ? tile.a : tile.b, { ...opts, id });
 }
-function currentHand() {
-  if (!game || (game.mode === 'cpu' && game.current === 1)) return '';
-  return game.hands[game.current].map(id => {
+function currentHand(player = game.current) {
+  if (!game) return '';
+  const interactive = game.phase !== 'finished' && isHumanTurn() && !handoff;
+  return game.hands[player].map(id => {
     const tile = getTile(game, id);
     const flip = Boolean(flipped[id]);
-    return `<div class="tile-wrap">${tileDisplay(id, { flip, button:true, selected:selected.includes(id) })}${game.phase==='opening' && tile.a !== tile.b ? `<button class="flip-control" data-action="flip" data-id="${id}" title="牌を反転">↻</button>` : ''}</div>`;
+    return `<div class="tile-wrap">${tileDisplay(id, { flip:interactive && flip, button:interactive, selected:interactive && selected.includes(id) })}${interactive && game.phase==='opening' && tile.a !== tile.b ? `<button class="flip-control" data-action="flip" data-id="${id}" title="牌を反転">↻</button>` : ''}</div>`;
   }).join('');
 }
 function formatMove(move) {
@@ -82,6 +84,13 @@ function actionPanel() {
   }
   return '';
 }
+function opponentHandMarkup(player) {
+  const count = game.hands[player].length;
+  return `<section class="opponent-hand" aria-label="${nameOf(player)}の手牌は${count}枚">
+    <div class="opponent-heading"><span class="opponent-name">◇ ${nameOf(player)}の手牌</span><strong>残り ${count} 枚</strong>${game.phase!=='finished' && game.current===player?'<span class="opponent-turn">手番中</span>':''}</div>
+    <div class="opponent-tiles" aria-hidden="true">${count ? Array.from({length:count},()=>dominoMarkup(0,0,{small:true,back:true})).join('') : '<span class="opponent-empty">手牌なし</span>'}</div>
+  </section>`;
+}
 function boardMarkup() {
   if (!game.board) return `<div class="board-empty"><div class="symbol">◇</div><strong>盤面はまだ空だよ</strong><small>平場で最初の役を置いて始めよう</small></div>`;
   const items = game.board.items, split = game.board.splitIndex;
@@ -119,13 +128,18 @@ function sideMarkup() {
   </aside>`;
 }
 function gameMarkup() {
-  const current=game.current, human=isHumanTurn(), show=human&&!handoff;
-  const hand = show?`<div class="hand-strip">${currentHand() || '<div class="empty-action">手札がないよ</div>'}</div>`:`<div class="hand-privacy">${game.mode==='cpu'?'CPUの手札は非公開': '次のプレイヤーが手札を確認するまで非公開'}</div>`;
+  const current=game.mode==='cpu'?0:game.current;
+  const opponent=1-current;
+  const human=isHumanTurn();
+  const finished=game.phase==='finished';
+  const show=finished || (!handoff && (human || game.mode==='cpu'));
+  const hand = show?`<div class="hand-strip">${currentHand(current) || '<div class="empty-action">手札がないよ</div>'}</div>`:`<div class="hand-privacy">次のプレイヤーが手札を確認するまで非公開</div>`;
   const ends=endsOf();
   return `<section class="game-layout"><div class="main-column">
+    ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
     <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?'FINAL ROUND':`ROUND ${String(game.round).padStart(2,'0')}`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${current===1?'cpu':''}"></i>${nameOf(current)}の番</div></div>
-    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div><div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>左端 <b>${ends?ends[0]:'—'}</b></span><span>通常の付札は同じ数字に接続</span><span>右端 <b>${ends?ends[1]:'—'}</b></span></div></section>
-    <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${human?nameOf(current):'CPU'}の手札 ${game.hands[current].length}枚</h2></div><span class="pill">選択 ${selected.length} / 2</span></div>${hand}<div class="action-area">${show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
+    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>左端 <b>${ends?ends[0]:'—'}</b></span><span>通常の付札は同じ数字に接続</span><span>右端 <b>${ends?ends[1]:'—'}</b></span></div></section>
+    <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / 2`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
    </div>${sideMarkup()}</section>`;
 }
 function headerMarkup() {
@@ -159,7 +173,7 @@ function endMarkup() {
   const labels = {role:'役点',pips:'ピップ点',honba:'本場点',early:'早アガリ',lastDraw:'山枯らし減点',remaining:'残牌減点'};
   return `<div class="overlay"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">${isComplete?'MATCH SET · FINAL STANDINGS':'GAME SET · SCORE SETTLEMENT'}</span><h2>${isComplete?(winner===null?'対局終了 · 引き分け！':`${nameOf(winner)}の総合勝利！`):`第${match.gameNumber}ゲーム終了`}</h2>
   <p>${game.endReason==='early'?'早アガリで終局':'山札が尽きて最終出牌終了'} · ${isComplete?`${MATCH_FORMATS[match.format].label}の全${match.totalGames}ゲーム終了`:`残り${match.totalGames-match.gameNumber}ゲーム`}</p>
-  <div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div>
+  <div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div><div class="review-entry"><button class="button primary" data-action="inspect-board">◇ 終局時の盤面を見る →</button></div>
   <table class="mini-table"><tr><th>このゲームの内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>ゲーム得点</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table>
   <div class="settlement"><span>得点差 ${record?.delta>0?'+':''}${record?.delta??0}点 → 持ち点に反映</span><div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div></div>
   ${isComplete?`<h3>総合成績</h3><table class="mini-table"><tr><th>ゲーム</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th><th>得点差</th></tr>${match.history.map(r=>`<tr><td>${r.game}</td><td>${r.scores[0]}</td><td>${r.scores[1]}</td><td>${r.delta>0?'+':''}${r.delta}</td></tr>`).join('')}<tr><th>最終持ち点</th><th>${match.points[0]}</th><th>${match.points[1]}</th><th>合計500</th></tr></table>`:''}
@@ -169,7 +183,7 @@ function handoffMarkup() {
   return `<div class="overlay"><div class="modal privacy-view" role="dialog" aria-modal="true"><div class="symbol">◇</div><span class="eyebrow">PASS THE DEVICE</span><div class="title">${nameOf(game.current)}の番だよ</div><p>相手に手札が見えないよう端末を渡してね</p><div class="modal-actions" style="justify-content:center"><button class="button primary large" data-action="reveal">手札を確認して始める</button></div></div></div>`;
 }
 function render() {
-  $app.innerHTML = `<div class="app-shell">${headerMarkup()}${game ? gameMarkup():homeMarkup()}<footer class="subfoot"><span>© Quad6 / 賽棋 · 2人用試遊版 · 無料 · インストール不要</span><span>天九の役 × ドミノの接続 × 累積得点</span></footer></div>${helpOpen?helpMarkup():''}${game&&game.phase==='finished'&&!helpOpen?endMarkup():''}${game&&handoff&&game.phase!=='finished'&&!helpOpen?handoffMarkup():''}${toastMessage?`<div class="toast" role="status">${safe(toastMessage)}</div>`:''}`;
+  $app.innerHTML = `<div class="app-shell">${headerMarkup()}${game ? gameMarkup():homeMarkup()}<footer class="subfoot"><span>© Quad6 / 賽棋 · 2人用試遊版 · 無料 · インストール不要</span><span>天九の役 × ドミノの接続 × 累積得点</span></footer></div>${helpOpen?helpMarkup():''}${game&&game.phase==='finished'&&!helpOpen&&!inspectFinalBoard?endMarkup():''}${game&&handoff&&game.phase!=='finished'&&!helpOpen?handoffMarkup():''}${toastMessage?`<div class="toast" role="status">${safe(toastMessage)}</div>`:''}`;
 }
 function notify(message) {
   toastMessage = message;
@@ -184,6 +198,7 @@ function start(mode, format = selectedFormat) {
   match = createMatch({ format, mode, initialHand:9, seed });
   game = match.game;
   selectedFormat = format;
+  inspectFinalBoard = false;
   helpOpen = false;
   handoff = mode==='local';
   busy = false;
@@ -197,6 +212,7 @@ function advanceGame() {
   if (!match?.settled || match.complete) return;
   clearTimeout(cpuTimer);
   game = nextMatchGame(match, Date.now() + Math.floor(Math.random()*100000));
+  inspectFinalBoard = false;
   resetTurnSelection();
   handoff = game.mode === 'local';
   busy = false;
@@ -241,9 +257,11 @@ $app.addEventListener('click', event => {
   if (action==='select-format' && !game) { selectedFormat=target.dataset.format;render();return; }
   if (action==='start-cpu') return start('cpu');
   if (action==='start-local') return start('local');
+  if (action==='inspect-board' && game?.phase==='finished') { inspectFinalBoard=true;render();return; }
+  if (action==='back-to-result' && game?.phase==='finished') { inspectFinalBoard=false;render();return; }
   if (action==='play-again') return start(game?.mode || 'cpu',match?.format || selectedFormat);
   if (action==='next-game') return advanceGame();
-  if (action==='back-home') {clearTimeout(cpuTimer);game=null;match=null;handoff=false;helpOpen=false;render();return;}
+  if (action==='back-home') {clearTimeout(cpuTimer);game=null;match=null;handoff=false;inspectFinalBoard=false;helpOpen=false;render();return;}
   if (action==='restart') { if(window.confirm('現在の対局を終了して最初からやり直す？')) start(game.mode,match.format); return; }
   if (action==='reveal') { handoff=false;render();return; }
   if (!game || game.phase==='finished' || helpOpen || handoff || !isHumanTurn()) return;

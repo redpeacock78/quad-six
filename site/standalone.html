@@ -825,6 +825,8 @@ function branchingBoardMarkup() {
           const y=walk(part.node,depth+1);
           childrenY.push(y);
         }else{
+          // Open port markers occupy an extra column beyond their parent.
+          maxDepth=Math.max(maxDepth,depth+1);
           const y=row++*gapY;
           portPositions.set(part.node.key,{depth:depth+1,y,side});
           childrenY.push(y);

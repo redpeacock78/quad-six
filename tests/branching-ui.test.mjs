@@ -18,6 +18,7 @@ function fixture() {
     const find = k => game.tiles.filter(t=>tileKey(t)===k).map(t=>t.id);
     game.hands[0]=game.tiles.map(t=>t.id);
     game.hands[1]=[];
+    game.current=0; // Parent is randomly assigned; this fixture stages player 0.
     dispatch(game,{type:'open',ids:[find('0-4')[0],find('3-5')[0]],flips:[true,true]});
     game.current=0;game.phase='attachment';
     const dbl=find('4-4')[0];

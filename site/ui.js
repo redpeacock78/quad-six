@@ -1,6 +1,6 @@
-import { newGame, dispatch, roleOf, isStronger, attachmentMoves, boardPorts, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js?v=branch-visual-20261030c';
-import { chooseAIAction } from './ai.js?v=branch-visual-20261030c';
-import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner, matchRoundName } from './match.js?v=branch-visual-20261030c';
+import { newGame, dispatch, roleOf, isStronger, attachmentMoves, boardPorts, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js?v=supreme-both-20261030d';
+import { chooseAIAction } from './ai.js?v=supreme-both-20261030d';
+import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner, matchRoundName } from './match.js?v=supreme-both-20261030d';
 
 
 const $app = document.getElementById('app');

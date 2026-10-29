@@ -10,7 +10,10 @@
   <title>賽棋 / Quad6 — 二人で競う、五十六の選択。</title>
 </head>
 <body>
-  <div id="app"></div>
+  <div id="app" role="status" aria-live="polite">
+    <p style="padding:2rem;color:#f3f0e5;text-align:center">賽棋（Quad6）を読み込み中…</p>
+    <p style="color:#a9bfb3;text-align:center">表示が変わらない場合はページを再読み込みしてください</p>
+  </div>
   <script type="module" src="./ui.js"></script>
 </body>
 </html>

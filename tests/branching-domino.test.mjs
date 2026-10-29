@@ -8,7 +8,7 @@ function setup({ left = '0-4', right = '3-5', leftFlip = true, rightFlip = true 
   const g = newGame({seed:92,startingPlayer:0});
   const find = k => g.tiles.filter(t => tileKey(t) === k).map(t => t.id);
   const ids = [find(left)[0],find(right)[0]];
-  g.hands[0] = g.tiles.map(t => t.id).filter(id => !ids.includes(id));
+  g.hands[0] = g.tiles.map(t => t.id);
   g.hands[1] = [];
   dispatch(g,{type:'open',ids,flips:[leftFlip,rightFlip]});
   g.current=0;
@@ -99,7 +99,7 @@ test('a regular two-tile move cannot split across 0 and 6 root sides',()=>{
   g.current=0;
   const ids=[find('0-2')[0],find('3-6')[1]];
   const choices=attachmentMoves(g,ids);
-  assert.ok(choices.every(m=>!m.special && m.portKey2===null));
+  assert.equal(choices.length, 0, 'unrelated normal tiles cannot be split across root endpoints');
 });
 
 test('all attached physical tile IDs are unique and pip accounting stays exact',()=>{

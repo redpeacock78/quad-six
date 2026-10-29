@@ -2,7 +2,7 @@ import { handPairs, isStronger, allAttachmentMoves, getTile, tilePips, tileKey, 
 
 
 /** An intentionally readable starter opponent, not an optimal solver. */
-function chooseAIAction(game) {
+export function chooseAIAction(game) {
   const p = game.current, hand = game.hands[p];
   if (game.phase === 'opening') {
     let candidates = handPairs(game, p, Boolean(game.board));

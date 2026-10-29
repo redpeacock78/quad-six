@@ -351,8 +351,8 @@ export function dispatch(game, action) {
       const consumed=new Set([move.portKey,move.portKey2].filter(Boolean));
       // Seal the untouched root after the first ordinary connection.
       board.ports=existing.filter(x=>!consumed.has(x.key)
-        && !(board.chosenSide===null&&!move.special&&x.root&&x.key!==port.key));
-      if(board.chosenSide===null)board.chosenSide=move.special?'supreme':port.side;
+        && !(board.chosenSide==null&&!move.special&&x.root&&x.key!==port.key));
+      if(board.chosenSide==null)board.chosenSide=move.special?'supreme':port.side;
       const add=(v,parentPort)=>{
         board.items.push({...v,parent:parentPort.owner,via:parentPort.key,side:parentPort.side,slot:parentPort.slot});
         board.ports.push(...outgoingPorts(v,parentPort.side));
@@ -360,7 +360,11 @@ export function dispatch(game, action) {
       add(move.placements[0],port);
       if(move.placements.length===2){
         if(move.special)add(move.placements[1],second);
-        else add(move.placements[1],{owner:move.placements[0].id,side:port.side,slot:0,key:`tile-${move.placements[0].id}-0`});
+        else {
+          // The second tile consumes the straight-ahead port of the first.
+          board.ports=board.ports.filter(x=>x.key!==`tile-${move.placements[0].id}-0`);
+          add(move.placements[1],{owner:move.placements[0].id,side:port.side,slot:0,key:`tile-${move.placements[0].id}-0`});
+        }
       }
       award(game, p, 'pips', ids.reduce((s, id) => s + tilePips(getTile(game, id)), 0));
       game.passStreak = 0;

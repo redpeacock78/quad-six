@@ -1,5 +1,5 @@
 /** Multi-game match: 1/4/8 scheduled dealer hands, with dealer continuations. */
-import { newGame, totalScore } from './engine.js?v=pip-svg-20261030b';
+import { newGame, totalScore } from './engine.js?v=branch-visual-20261030c';
 
 export const MATCH_FORMATS = Object.freeze({
   single: { label: '一局戦', games: 1 },

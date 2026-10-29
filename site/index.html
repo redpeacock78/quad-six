@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#071c1b">
+  <meta name="description" content="賽棋（Quad6）— 天九の役とドミノの接続を融合した2人用戦略ゲーム。無料ブラウザ版。">
+<style>
+:root{color-scheme:dark;--bg:#081d1b;--bgdeep:#041210;--panel:#102925;--panel2:#16332d;--line:#315049;--line2:#46665c;--text:#f3f0e5;--muted:#a9bfb3;--gold:#dfb978;--gold2:#f4d89d;--mint:#93d3b7;--red:#de9379;--ivory:#f3e9d5;--ink:#20362f;--shadow:0 20px 90px rgba(0,0,0,.32);font-family:'DM Sans','Noto Sans JP',system-ui,sans-serif;font-synthesis:none}
+*{box-sizing:border-box}html,body{min-height:100%;margin:0}body{background:radial-gradient(ellipse at 22% -8%,#18473d 0,transparent 45%),radial-gradient(ellipse at 90% 35%,#123328 0,transparent 38%),var(--bg);color:var(--text)}button,input{font:inherit}button{cursor:pointer}button:disabled{opacity:.38;cursor:not-allowed}button:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}button,.tile-wrap{touch-action:manipulation}h1,h2,h3,p{margin:0}strong{font-weight:800}a{color:var(--gold2)}.app-shell{width:min(1550px,100%);margin:0 auto;padding:24px clamp(15px,2.7vw,40px) 42px}.masthead{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-bottom:20px;border-bottom:1px solid rgba(218,211,176,.18)}.brand{display:flex;gap:13px;align-items:center}.brand-symbol{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid #bc9e6c;color:var(--gold2);font-family:serif;font-weight:bold;font-size:25px;transform:rotate(-7deg);border-radius:9px;background:#173a31;box-shadow:inset 0 0 0 3px #10271f}.brand-text{font-weight:800;font-size:22px;letter-spacing:.12em}.brand-sub{font-size:10px;color:var(--gold);font-weight:700;letter-spacing:.22em;margin-top:2px}.header-actions{display:flex;gap:9px;align-items:center}.small-label{letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--gold);font-weight:800}.eyebrow{font-size:11px;text-transform:uppercase;color:var(--gold);letter-spacing:.22em;font-weight:800}.tag{font-size:11px;letter-spacing:.08em;font-weight:800;color:var(--gold2);padding:6px 10px;border:1px solid #7e7056;border-radius:5px;background:rgba(218,180,108,.08)}.pill{font-size:11px;border:1px solid var(--line);padding:6px 11px;color:var(--muted);border-radius:99px;font-weight:700}.pill.active{color:#0b3026;background:var(--mint);border-color:var(--mint)}.button{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:12px 17px;border-radius:9px;border:1px solid #526e63;background:#1b3d34;color:var(--text);font-size:13px;font-weight:800;transition:background .15s,transform .15s,box-shadow .15s}.button:hover:not(:disabled){background:#2b5144;transform:translateY(-1px)}.button.primary{background:var(--gold);color:#192b23;border-color:var(--gold);box-shadow:0 5px 22px #0003}.button.primary:hover:not(:disabled){background:var(--gold2)}.button.quiet{background:transparent;border-color:#456157;color:var(--muted)}.button.danger{border-color:#75554e;color:#efb19b;background:#372a26}.button.large{padding:16px 25px;font-size:14px}.button.full{width:100%}.button.tight{padding:7px 10px;font-size:11px}.icon-button{border:1px solid #3b5b50;color:var(--text);background:#15352e;padding:9px 12px;border-radius:8px;font-size:14px}.icon-button:hover{background:#285145}.intro{padding:62px 0 20px;display:grid;grid-template-columns:1.03fr .97fr;gap:32px;align-items:center;min-height:620px}.intro-copy{max-width:640px}.intro h1{font-size:clamp(49px,6.7vw,105px);line-height:1.07;letter-spacing:.01em;margin:15px 0}.intro h1 em{font-style:normal;color:var(--gold)}.intro .lead{color:#c4d1c3;font-size:clamp(14px,1.2vw,18px);line-height:2;max-width:560px}.intro-actions{display:flex;flex-wrap:wrap;gap:12px;margin:30px 0}.intro-feature{margin-top:42px;display:flex;gap:22px;color:#adc2b5;font-size:12px}.intro-feature b{display:block;color:var(--text);font-size:18px;margin-bottom:4px}.intro-visual{min-height:470px;position:relative;display:grid;place-items:center;background:radial-gradient(ellipse at center,rgba(61,120,92,.38),transparent 61%)}.intro-mandala{height:min(39vw,400px);width:min(39vw,400px);border:1px solid #426651;border-radius:50%;position:absolute;box-shadow:0 0 0 35px #20453620,0 0 0 80px #2045360a;transform:rotate(-8deg)}.intro-mandala:before,.intro-mandala:after{content:'';position:absolute;inset:29px;border:1px dashed #789d774e;border-radius:50%}.intro-mandala:after{inset:90px}.intro-domino{position:absolute;filter:drop-shadow(12px 18px 7px #0006);transform:rotate(var(--angle,0deg))}.intro-domino:nth-of-type(2){top:20%;left:10%;--angle:-28deg}.intro-domino:nth-of-type(3){top:14%;right:17%;--angle:19deg}.intro-domino:nth-of-type(4){bottom:21%;left:15%;--angle:34deg}.intro-domino:nth-of-type(5){bottom:18%;right:10%;--angle:-20deg}.intro-title{position:relative;z-index:2;text-align:center;text-shadow:0 4px 15px #071d1c}.intro-title .kanji{font-family:serif;font-size:clamp(67px,8vw,121px);font-weight:bold;letter-spacing:.12em;color:var(--gold2)}.intro-title .roman{font-size:16px;letter-spacing:.5em;font-weight:800}.intro-foot{margin-top:23px;color:#9daea2;font-size:11px;letter-spacing:.2em}.subfoot{border-top:1px solid #25473c;margin-top:36px;padding-top:16px;font-size:11px;color:#889e90;display:flex;justify-content:space-between;gap:10px}.game-layout{display:grid;grid-template-columns:minmax(0,1fr) 316px;gap:17px;margin-top:22px}.main-column,.side-column{min-width:0;display:flex;flex-direction:column;gap:16px}.panel{border:1px solid var(--line);border-radius:13px;background:linear-gradient(160deg,rgba(22,55,46,.95),rgba(11,37,32,.95));box-shadow:0 8px 32px #0002;overflow:hidden}.panel-pad{padding:18px 20px}.statusbar{display:flex;flex-wrap:wrap;gap:15px;align-items:center;justify-content:space-between}.statusbar-left{display:flex;gap:11px;align-items:center;flex-wrap:wrap}.turn-indicator{display:flex;align-items:center;gap:8px;color:var(--text);font-size:14px;font-weight:800}.turn-dot{width:10px;height:10px;background:var(--mint);border-radius:50%;box-shadow:0 0 0 4px #9cddaa21}.turn-dot.cpu{background:#edba8c;box-shadow:0 0 0 4px #edba8c22}.phase-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800}.statusbar .minor{font-size:12px;color:var(--muted)}.playmat{position:relative;min-height:310px;display:flex;flex-direction:column;background:radial-gradient(ellipse at center,#1f5748 0%,#12392f 58%,#102b26 100%);border:1px solid #426c57;box-shadow:inset 0 0 0 6px #14342a,inset 0 0 0 7px #39624e,0 13px 42px #0002;overflow:hidden;border-radius:15px}.playmat:before{content:'';position:absolute;inset:18px;border:1px solid #ffffff13;border-radius:8px;pointer-events:none}.mat-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;position:relative;z-index:1;padding:22px 26px}.mat-heading h2{font-size:17px;letter-spacing:.05em}.mat-side-info{font-size:11px;color:#b2cbb9;text-align:right}.board-holder{display:flex;align-items:center;flex:1;min-height:195px;padding:20px 24px 30px;overflow:auto;scrollbar-color:#527c63 #14372d}.board-strip{margin:auto;display:flex;align-items:center;justify-content:center;gap:8px;min-width:max-content;min-height:126px}.board-group{display:flex;gap:6px;align-items:center}.root-joint{width:29px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--gold2);font-size:15px}.root-joint:before,.root-joint:after{content:'';width:1px;height:21px;background:#a4a97880}.edge-marker{display:flex;align-items:center;justify-content:center;min-width:40px;height:40px;border:1px dashed #b3cf9b95;border-radius:50%;background:#25493a;color:#eff6dd;font-size:21px;font-weight:800}.edge-marker.left{margin-right:4px}.edge-marker.right{margin-left:4px}.board-empty{text-align:center;margin:auto;display:flex;flex-direction:column;gap:9px;align-items:center;justify-content:center}.board-empty .symbol{font-family:serif;font-size:48px;opacity:.52;color:var(--gold)}.board-empty strong{font-size:15px}.board-empty small{font-size:12px;color:#a4c6b0}.mat-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;position:relative;z-index:1;padding:12px 26px;background:#0a2923a8;border-top:1px solid #3a6c533b;color:#b7d2c0;font-size:11px}.mat-footer b{color:var(--gold2)}.domino{flex:none;display:flex;align-items:stretch;width:86px;height:43px;background:var(--ivory);border:1px solid #e9d5b4;border-radius:6px;box-shadow:0 3px 0 #b2a68b,0 7px 12px #0005;color:#183d33;padding:4px;transition:transform .15s,filter .15s;position:relative}.domino.small{width:69px;height:37px;padding:3px}.domino.large{width:116px;height:59px;padding:5px}.domino.face-down{background:repeating-linear-gradient(45deg,#baab87 0 2px,#dacba5 2px 8px);border:3px solid #f2e3bf;box-shadow:0 4px 0 #8a805d,0 10px 14px #0004}.domino.face-down:before{content:'◇';font-family:serif;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border:1px solid #7d8057;color:#386054;background:#e9dfc7;width:21px;height:21px;display:grid;place-items:center;font-size:17px}.domino.hold{border:1px solid #c4a976;background:#f4ead9}.domino.hold:hover{transform:translateY(-5px)}.domino.hold.selected{transform:translateY(-13px);border-color:var(--gold);filter:drop-shadow(0 0 8px #e4b96a88);box-shadow:0 4px 0 #7f7455,0 9px 25px #0008}.domino .half{width:50%;height:100%;position:relative}.domino .half+.half{border-left:1px solid #b2a68f}.pip{position:absolute;width:5px;height:5px;background:#214138;border-radius:50%;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 1px #17382f2c}.domino.small .pip{width:4px;height:4px}.domino.large .pip{width:6px;height:6px}.tile-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:86px;padding-top:14px}.tile-wrap .flip-control{position:absolute;right:0;top:-7px;width:26px;height:26px;border-radius:50%;border:1px solid #6a8a74;background:#294d40;color:#e5d3a1;z-index:2;font-weight:800;font-size:16px}.tile-wrap .flip-control:hover{background:#406c59}.hand-panel .panel-heading{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 0;gap:10px;flex-wrap:wrap}.hand-panel h2{font-size:18px}.hand-strip{display:flex;align-items:end;justify-content:center;gap:8px;flex-wrap:wrap;min-height:112px;padding:19px 16px 20px}.hand-strip .domino{width:80px;height:45px}.hand-strip .tile-wrap{min-width:80px}.hand-privacy{padding:34px 18px;text-align:center;color:var(--muted);font-size:13px}.action-area{padding:18px 20px;border-top:1px solid var(--line);background:#0b2822}.action-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.action-head strong{font-size:14px}.help-text{font-size:12px;color:var(--muted);line-height:1.8}.action-buttons{display:flex;flex-wrap:wrap;gap:9px;margin-top:12px}.role-preview{padding:12px;background:#174138;border:1px solid #4c7462;border-radius:9px;font-size:12px;margin-top:11px;display:flex;justify-content:space-between;gap:10px;align-items:center}.role-preview strong{color:var(--gold2);font-size:14px}.move-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;max-height:210px;overflow:auto}.move-option{text-align:left;padding:11px 12px;border-radius:8px;border:1px solid #4f7564;background:#1b453a;color:var(--text);font-size:12px;font-weight:700}.move-option:hover{background:#2b5b4b;border-color:#9ac5a4}.move-option span{display:block;color:#b4d0bf;font-weight:500;font-size:10px;margin-top:4px}.empty-action{padding:11px 0;color:var(--muted);font-size:12px}.side-section{padding:18px 19px}.side-section+.side-section{border-top:1px solid var(--line)}.side-title{display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:13px}.side-title h3{font-size:13px;letter-spacing:.08em}.score-person{padding:12px 14px;border-radius:9px;border:1px solid #496456;background:#15362e;display:flex;align-items:center;justify-content:space-between;gap:9px;margin:8px 0}.score-person.active{border-color:#d3b577;background:#2c4437}.score-person .player-name{font-size:12px;font-weight:800}.score-person .player-detail{font-size:11px;color:var(--muted);margin-top:4px}.score-person .points{font-weight:800;font-size:26px;font-variant-numeric:tabular-nums;color:var(--gold2)}.round-lbl{font-size:11px;color:var(--muted);margin-top:9px}.side-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.statbox{background:#0b2923;border:1px solid #315247;padding:10px 7px;text-align:center;border-radius:8px}.statbox .number{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}.statbox .label{font-size:10px;color:var(--muted);margin-top:3px}.mini-role-list{display:flex;flex-direction:column;gap:6px}.mini-role{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:6px 0;border-bottom:1px dashed #385b4d}.mini-role:last-child{border-bottom:none}.mini-role b{color:var(--gold2)}.discards{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.discards .domino{width:61px;height:30px;padding:2px;border-radius:4px}.discards .pip{width:3px;height:3px}.discards.empty{color:var(--muted);font-size:12px}.log-entry{font-size:11px;padding:9px 0;color:#c5d7c9;border-top:1px solid #34564a;line-height:1.5}.log-entry:first-child{border:0}.log-entry small{color:var(--gold);margin-right:8px}.drawer{margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}details>summary{cursor:pointer;color:var(--gold2);font-size:12px;padding:8px 0}.ledger{width:100%;border-collapse:collapse;font-size:11px;margin-top:9px}.ledger th,.ledger td{border-bottom:1px solid #38564b;padding:8px 5px;text-align:right;font-variant-numeric:tabular-nums}.ledger th:first-child,.ledger td:first-child{text-align:left}.ledger th{color:var(--muted);font-weight:600}.ledger .total td{color:var(--gold2);font-weight:800}.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:#041510d9;backdrop-filter:blur(14px);z-index:20;overflow:auto}.modal{width:min(650px,100%);max-height:min(90vh,910px);overflow:auto;border:1px solid #62816b;border-radius:16px;background:linear-gradient(160deg,#1a3a30,#0d2924);padding:clamp(22px,4vw,36px);box-shadow:0 30px 95px #0009}.modal h2{font-size:clamp(27px,4vw,39px);margin:6px 0 13px;font-weight:800;letter-spacing:.02em}.modal h3{font-size:16px;margin:21px 0 9px;color:var(--gold2)}.modal p,.modal li{font-size:13px;color:#c4d3c5;line-height:1.9}.modal ul,.modal ol{padding-left:22px;margin:9px 0}.modal .modal-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:23px}.modal .mini-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:12px}.mini-table th,.mini-table td{padding:9px 5px;border-bottom:1px solid #3a594d;text-align:left}.mini-table th{color:var(--gold2);font-weight:700}.win-number{font-size:42px;font-weight:800;color:var(--gold2)}.winner-row{display:flex;align-items:baseline;gap:14px;margin:18px 0}.privacy-view{text-align:center}.privacy-view .symbol{font-size:60px;margin-bottom:12px}.privacy-view .title{font-size:26px;font-weight:800;margin:10px 0}.toast{position:fixed;z-index:30;bottom:22px;left:50%;transform:translateX(-50%);max-width:90vw;background:#f4e6c9;color:#25362e;border-radius:10px;font-size:13px;font-weight:700;padding:12px 20px;box-shadow:0 10px 35px #0007}.footnote{color:var(--muted);font-size:11px;margin-top:10px;line-height:1.6}.final-tag{color:#f4c18f!important;border-color:#af7b5e!important}.no-select{user-select:none}
+@media(max-width:1090px){.game-layout{grid-template-columns:minmax(0,1fr)}.side-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.side-column>.panel:first-child{grid-row:span 2}.intro{grid-template-columns:1fr 1fr}.intro-visual{min-height:350px}}
+@media(max-width:670px){.app-shell{padding:14px 12px 26px}.masthead{padding-bottom:12px}.brand-symbol{width:37px;height:37px;font-size:22px}.brand-text{font-size:18px}.brand-sub{font-size:8px}.header-actions{gap:5px}.button.tight{padding:8px;font-size:10px}.intro{grid-template-columns:1fr;min-height:0;padding:35px 0 0;gap:0}.intro h1{font-size:52px}.intro .lead{font-size:14px}.intro-visual{min-height:280px;margin-top:15px}.intro-mandala{width:240px;height:240px}.intro-title .kanji{font-size:77px}.intro-domino:nth-of-type(2){left:6%;top:9%}.intro-domino:nth-of-type(3){right:6%;top:9%}.intro-domino:nth-of-type(4){left:6%;bottom:11%}.intro-domino:nth-of-type(5){right:6%;bottom:11%}.intro-visual .domino.large{width:83px;height:43px}.game-layout{margin-top:12px;gap:12px}.main-column,.side-column{gap:12px}.side-column{display:flex;flex-direction:column}.playmat{min-height:266px}.mat-heading{padding:17px}.mat-footer{padding:12px 15px}.board-holder{padding:15px 12px;min-height:155px}.board-strip{gap:5px}.board-group{gap:4px}.domino{width:67px;height:36px;padding:3px}.pip{width:4px;height:4px}.root-joint{width:17px}.edge-marker{min-width:30px;height:30px;font-size:16px}.hand-strip{gap:4px;padding:17px 8px 16px}.hand-strip .domino{width:64px;height:39px;padding:3px}.hand-strip .tile-wrap{min-width:64px}.tile-wrap{min-width:64px}.tile-wrap .flip-control{width:23px;height:23px;top:-9px;right:-3px}.panel-pad,.action-area{padding:15px}.move-options{grid-template-columns:1fr}.modal{max-height:90dvh}.subfoot{flex-direction:column}.intro-feature{gap:12px;flex-wrap:wrap}.intro-actions .button{flex:1}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+
+</style>
+  <title>賽棋 / Quad6 — 二人で競う、五十六の選択。</title>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module">
+// ---- engine.js ----
+/** 賽棋 Quad6 — dependency-free, deterministic rule engine. */
+
+const MARTIAL = [
+  ['雑十', '4-6', '5-5', 10],
+  ['雑九', '3-6', '4-5', 9],
+  ['雑八', '2-6', '3-5', 8],
+  ['雑七', '2-5', '3-4', 7],
+  ['雑六', '1-5', '2-4', 6],
+  ['雑五', '1-4', '2-3', 5],
+  ['雑四', '0-4', '1-3', 4],
+  ['雑三', '0-3', '1-2', 3],
+  ['雑二', '0-2', '1-1', 2],
+];
+
+const MARTIAL_LOOKUP = new Map(MARTIAL.map(([name, x, y, level]) => [pairKey(x, y), { name, level }]));
+const ROLE_POINTS = { supreme: 20, civil: 15, martial: 10, common: 5 };
+const DEFAULTS = { initialHand: 9, honbaUnit: 3, earlyBonus: 15, lastDrawPenalty: 15 };
+
+function pairKey(a, b) { return [a, b].sort().join('+'); }
+function random(seed) {
+  let x = seed >>> 0;
+  return () => {
+    x += 0x6D2B79F5;
+    let t = x;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const assert = (condition, message) => { if (!condition) throw new Error(message); };
+const tileKey = (tile) => `${Math.min(tile.a, tile.b)}-${Math.max(tile.a, tile.b)}`;
+const tilePips = (tile) => tile.a + tile.b;
+const getTile = (game, id) => game.tiles[id];
+const totalScore = (game, player) => {
+  const s = game.scores[player];
+  return s.role + s.pips + s.honba + s.early - s.lastDraw - s.remaining;
+};
+function tileset() {
+  const tiles = [];
+  for (let copy = 0; copy < 2; copy++) {
+    for (let a = 0; a <= 6; a++) {
+      for (let b = a; b <= 6; b++) tiles.push({ id: tiles.length, a, b, copy });
+    }
+  }
+  return tiles;
+}
+function roleOf(game, ids) {
+  assert(ids.length === 2, '役は2枚で構成する');
+  const [a, b] = ids.map(id => tileKey(getTile(game, id)));
+  if (pairKey(a, b) === pairKey('6-6', '0-0')) return { tier: 'supreme', name: '至尊', level: 99, points: 20 };
+  if (a === b) {
+    const tile = getTile(game, ids[0]);
+    return { tier: 'civil', name: `文牌 ${tile.a}｜${tile.b}`, level: tile.a + tile.b, key: a, points: 15 };
+  }
+  const martial = MARTIAL_LOOKUP.get(pairKey(a, b));
+  if (martial) return { tier: 'martial', name: martial.name, level: martial.level, points: 10 };
+  return { tier: 'common', name: '雑', level: 0, points: 5 };
+}
+function isStronger(next, current) {
+  if (!current) return true;
+  const tier = { common: 0, martial: 1, civil: 2, supreme: 3 };
+  if (tier[next.tier] !== tier[current.tier]) return tier[next.tier] > tier[current.tier];
+  if (next.tier === 'civil') {
+    // 0|0 pair is otherwise lowest, but it alone defeats the 6|6 pair.
+    if (next.key === '0-0' && current.key === '6-6') return true;
+    if (next.key === '6-6' && current.key === '0-0') return false;
+  }
+  return next.level > current.level;
+}
+function shuffle(ids, seed) {
+  const rng = random(seed);
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+}
+function record(game, text, by = null) {
+  game.history.unshift({ round: game.round, text, by });
+  game.history.length = Math.min(70, game.history.length);
+}
+function stats(game) { return game.rounds[game.rounds.length - 1]; }
+function award(game, player, field, points) {
+  game.scores[player][field] += points;
+  if (field === 'role' || field === 'pips' || field === 'honba') stats(game)[field][player] += points;
+}
+function other(p) { return 1 - p; }
+function beginRound(game) {
+  game.board = null;
+  game.openingRole = null;
+  game.honba = 0;
+  game.lastOverwriter = null;
+  game.passStreak = 0;
+  game.adjustDone = [false, false];
+  game.phase = 'opening';
+  game.current = game.lead;
+  game.rounds.push({ round: game.round, role: [0, 0], pips: [0, 0], honba: [0, 0] });
+}
+function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now() } = {}) {
+  assert(initialHand >= 2 && initialHand <= 16, '初期手札は2〜16枚');
+  const tiles = tileset();
+  const stock = tiles.map(t => t.id);
+  shuffle(stock, seed);
+  const hands = [[], []];
+  for (let i = 0; i < initialHand; i++) for (let p = 0; p < 2; p++) hands[p].push(stock.pop());
+  const game = {
+    version: 3, mode, seed, tiles, stock, hands,
+    discard: [], board: null, current: 0, lead: 0, phase: 'opening', round: 1,
+    final: false, finalOut: [false, false], lastDrawBy: null, lastDrawExempt: false,
+    openingRole: null, honba: 0, lastOverwriter: null, passStreak: 0,
+    scores: [0, 1].map(() => ({ role: 0, pips: 0, honba: 0, early: 0, lastDraw: 0, remaining: 0 })),
+    rounds: [], history: [], adjustDone: [false, false], endReason: null,
+    initialHand
+  };
+  beginRound(game);
+  record(game, `対局開始 · 各${initialHand}枚 · 山札${stock.length}枚`);
+  return game;
+}
+function handPairs(game, player = game.current, strongerOnly = false) {
+  const hand = game.hands[player], result = [];
+  for (let i = 0; i < hand.length; i++) for (let j = i + 1; j < hand.length; j++) {
+    const ids = [hand[i], hand[j]];
+    const role = roleOf(game, ids);
+    if (!strongerOnly || isStronger(role, game.openingRole)) result.push({ ids, role });
+  }
+  return result;
+}
+function removeHand(game, p, ids) {
+  assert(new Set(ids).size === ids.length, '同じ牌を2度指定できません');
+  for (const id of ids) assert(game.hands[p].includes(id), '手札に存在しない牌');
+  game.hands[p] = game.hands[p].filter(id => !ids.includes(id));
+}
+function oriented(game, id, flip = false) {
+  const t = getTile(game, id);
+  return { id, a: flip ? t.b : t.a, b: flip ? t.a : t.b };
+}
+function checkEndHand(game, player) {
+  if (game.hands[player].length === 0) {
+    finish(game, 'early', player);
+    return true;
+  }
+  return false;
+}
+function settleOpening(game, passedBy) {
+  if (game.honba > 0 && game.lastOverwriter != null) {
+    const pts = game.honba * DEFAULTS.honbaUnit;
+    award(game, game.lastOverwriter, 'honba', pts);
+    record(game, `${game.honba}本場 · P${game.lastOverwriter + 1}が${pts}点総取り`, game.lastOverwriter);
+  }
+  game.phase = 'attachment';
+  game.passStreak = 0;
+  game.current = game.final && game.finalOut[passedBy] ? other(passedBy) : passedBy;
+  record(game, '付札フェーズ開始');
+}
+function nextActive(game, player) { return game.final && game.finalOut[other(player)] ? player : other(player); }
+function finish(game, reason, winner = null) {
+  if (game.phase === 'finished') return;
+  game.phase = 'finished';
+  game.endReason = reason;
+  if (reason === 'early') {
+    // A last-tile opening bid can end the game before normal bidding settlement.
+    if (game.phase === 'opening' && game.honba > 0 && game.lastOverwriter !== null) {
+      award(game, game.lastOverwriter, 'honba', game.honba * DEFAULTS.honbaUnit);
+    }
+    game.scores[winner].early = DEFAULTS.earlyBonus;
+    game.lastDrawBy = null; // early finish overrides LO penalty
+    record(game, `P${winner + 1} 早アガリ · +${DEFAULTS.earlyBonus}点`, winner);
+  } else if (game.lastDrawBy !== null && !game.lastDrawExempt) {
+    game.scores[game.lastDrawBy].lastDraw = DEFAULTS.lastDrawPenalty;
+  }
+  for (let p = 0; p < 2; p++) {
+    const pip = game.hands[p].reduce((a, id) => a + tilePips(getTile(game, id)), 0);
+    game.scores[p].remaining = Math.ceil(pip / 2);
+  }
+  record(game, '終局 · 最終精算');
+}
+function toFinal(game, player, exempt = false) {
+  if (game.final || game.phase === 'finished') return;
+  game.final = true;
+  game.finalOut = [false, false];
+  game.lastDrawBy = player;
+  game.lastDrawExempt = exempt;
+  game.passStreak = 0;
+  if (game.phase === 'adjustment') {
+    game.phase = 'opening';
+    game.current = game.lead;
+  }
+  record(game, exempt ? '強制補充による山枯らし · 罰点なし' : `P${player + 1}が最後の牌を引いた · 最終出牌へ`, player);
+}
+function draw(game, player, exempt = false) {
+  if (game.stock.length === 0) return false;
+  game.hands[player].push(game.stock.pop());
+  if (game.stock.length === 0) toFinal(game, player, exempt);
+  return true;
+}
+function endRound(game) {
+  if (game.board) game.discard.push(...game.board.items.map(p => p.id));
+  record(game, `第${game.round}局終了 · 場の牌を公開除外`);
+  game.board = null;
+  game.openingRole = null;
+  game.honba = 0;
+  game.lastOverwriter = null;
+  game.passStreak = 0;
+  game.round += 1;
+  game.lead = other(game.lead);
+  game.current = game.lead;
+  game.phase = 'adjustment';
+  game.adjustDone = [false, false];
+  // If stock empties exactly after a normal pass, toFinal prevents resetting.
+}
+function startAfterAdjust(game) {
+  // Special mandatory refill of 2 for a one-tile hand; if it exhausts stock, final play starts without LO penalty.
+  for (let p = 0; p < 2; p++) {
+    if (game.hands[p].length !== 1) continue;
+    record(game, `P${p + 1} 手札1枚 · 2枚の強制補充`, p);
+    for (let k = 0; k < 2; k++) {
+      if (!draw(game, p, true)) break;
+    }
+    if (game.final) break;
+  }
+  beginRound(game);
+  if (game.final) {
+    game.current = game.lead;
+    record(game, '場が空の状態から最終平場を開始');
+  } else record(game, `第${game.round}局開始`);
+}
+function orientationVariants(game, id) {
+  const t = getTile(game, id);
+  if (t.a === t.b) return [oriented(game, id, false)];
+  return [oriented(game, id, false), oriented(game, id, true)];
+}
+/** Legal attachment actions for a set of 1 or 2 distinct tiles. */
+function attachmentMoves(game, ids, player = game.current) {
+  if (game.phase !== 'attachment' || !game.board || ids.length < 1 || ids.length > 2) return [];
+  if (new Set(ids).size !== ids.length || ids.some(id => !game.hands[player].includes(id))) return [];
+  const items = game.board.items;
+  const left = items[0].a, right = items[items.length - 1].b;
+  const out = [], seen = new Set();
+  const push = (side, placements, special = false) => {
+    const key = `${side}:${placements.map(p => `${p.id}/${p.a}/${p.b}`).join(':')}`;
+    if (!seen.has(key)) { seen.add(key); out.push({ side, placements, special, key }); }
+  };
+  if (ids.length === 1) {
+    for (const v of orientationVariants(game, ids[0])) {
+      if (v.b === left) push('left', [v]);
+      if (v.a === right) push('right', [v]);
+    }
+  } else {
+    for (const order of [ids, [ids[1], ids[0]]]) {
+      for (const a of orientationVariants(game, order[0])) {
+        for (const b of orientationVariants(game, order[1])) {
+          // right: first tile touches existing right endpoint
+          if (a.a === right && a.b === b.a) push('right', [a, b]);
+          // left: first tile is closest to board, second tile is outermost
+          if (a.b === left && b.b === a.a) push('left', [b, a]);
+        }
+      }
+    }
+    const keys = ids.map(id => tileKey(getTile(game, id)));
+    if (pairKey(...keys) === pairKey('0-0', '6-6')) {
+      const zero = oriented(game, ids[keys.indexOf('0-0')]);
+      const six = oriented(game, ids[keys.indexOf('6-6')]);
+      if (left === 0 && right === 6) push('both', [zero, six], true);
+      if (left === 6 && right === 0) push('both', [six, zero], true);
+    }
+  }
+  return out;
+}
+function allAttachmentMoves(game, player = game.current) {
+  const hand = game.hands[player];
+  const result = [];
+  for (let i = 0; i < hand.length; i++) {
+    result.push(...attachmentMoves(game, [hand[i]], player));
+    for (let j = i + 1; j < hand.length; j++) result.push(...attachmentMoves(game, [hand[i], hand[j]], player));
+  }
+  return result;
+}
+function dispatch(game, action) {
+  assert(game.phase !== 'finished', '既に終局しています');
+  const p = game.current;
+  switch (action.type) {
+    case 'open': {
+      assert(game.phase === 'opening', '平場ではありません');
+      const ids = action.ids || [];
+      assert(ids.length === 2, '役は2枚で出してください');
+      assert(ids.every(id => game.hands[p].includes(id)) && ids[0] !== ids[1], '手札を2枚選んでください');
+      const role = roleOf(game, ids);
+      assert(isStronger(role, game.openingRole), '現在の役を上書きできません');
+      if (game.board) {
+        game.discard.push(...game.board.items.map(item => item.id));
+        game.honba++;
+        game.lastOverwriter = p;
+      }
+      const flips = action.flips || [false, false];
+      game.board = { items: ids.map((id, i) => oriented(game, id, Boolean(flips[i]))), splitIndex: 1 };
+      removeHand(game, p, ids);
+      game.openingRole = role;
+      award(game, p, 'role', role.points);
+      award(game, p, 'pips', ids.reduce((s, id) => s + tilePips(getTile(game, id)), 0));
+      record(game, `P${p + 1} ${role.name} · +${role.points}役点${game.honba ? ` · ${game.honba}本場` : ''}`, p);
+      if (checkEndHand(game, p)) break;
+      game.current = nextActive(game, p);
+      if (game.final && game.current === p) settleOpening(game, other(p));
+      break;
+    }
+    case 'passOpen': {
+      assert(game.phase === 'opening', '平場ではありません');
+      if (!game.final) {
+        assert(game.board, '最初の役は必ず出してください');
+        record(game, `P${p + 1} 上書きを見送り`, p);
+        settleOpening(game, p);
+      } else {
+        game.finalOut[p] = true;
+        record(game, `P${p + 1} 最終平場をパス · 脱落`, p);
+        if (game.finalOut.every(Boolean)) finish(game, 'exhaustion');
+        else if (game.board) settleOpening(game, p);
+        else game.current = other(p);
+      }
+      break;
+    }
+    case 'attach': {
+      assert(game.phase === 'attachment', '付札フェーズではありません');
+      const ids = action.ids || [];
+      const candidates = attachmentMoves(game, ids, p);
+      const move = candidates.find(x => x.key === action.moveKey);
+      assert(move, 'その接続はできません');
+      removeHand(game, p, ids);
+      if (move.side === 'left') {
+        game.board.items.unshift(...move.placements);
+        game.board.splitIndex += move.placements.length;
+      } else if (move.side === 'right') {
+        game.board.items.push(...move.placements);
+      } else {
+        game.board.items.unshift(move.placements[0]);
+        game.board.items.push(move.placements[1]);
+        game.board.splitIndex++;
+      }
+      award(game, p, 'pips', ids.reduce((s, id) => s + tilePips(getTile(game, id)), 0));
+      game.passStreak = 0;
+      record(game, `P${p + 1} ${ids.length}枚付札${move.special ? ' · 至尊の両側接続' : ''}`, p);
+      if (checkEndHand(game, p)) break;
+      game.current = nextActive(game, p);
+      break;
+    }
+    case 'passAttach': {
+      assert(game.phase === 'attachment', '付札フェーズではありません');
+      if (game.final) {
+        game.finalOut[p] = true;
+        record(game, `P${p + 1} 最終付札をパス · 脱落`, p);
+        if (game.finalOut.every(Boolean)) finish(game, 'exhaustion');
+        else game.current = other(p);
+      } else {
+        const drawn = draw(game, p);
+        record(game, `P${p + 1} パス · ${drawn ? '1枚ドロー' : '山札なし'}`, p);
+        if (game.final) {
+          game.current = other(p);
+          break;
+        }
+        game.passStreak++;
+        if (game.passStreak >= 2) endRound(game);
+        else game.current = other(p);
+      }
+      break;
+    }
+    case 'adjust': {
+      assert(game.phase === 'adjustment', '手札調整ではありません');
+      assert(!game.adjustDone[p], '調整は各自1回です');
+      assert(['none', 'draw', 'exchange'].includes(action.choice), '無効な調整方法');
+      if (action.choice === 'exchange') {
+        const id = action.id;
+        assert(game.hands[p].includes(id), '交換する牌を選択してください');
+        assert(game.stock.length > 0, '山札がありません');
+        removeHand(game, p, [id]);
+        game.discard.push(id);
+        draw(game, p);
+        record(game, `P${p + 1} 1枚公開交換`, p);
+      } else if (action.choice === 'draw') {
+        assert(game.stock.length > 0, '山札がありません');
+        draw(game, p);
+        record(game, `P${p + 1} 1枚補充`, p);
+      } else record(game, `P${p + 1} 調整なし`, p);
+      game.adjustDone[p] = true;
+      if (game.final) break;
+      if (game.adjustDone.every(Boolean)) startAfterAdjust(game);
+      else game.current = other(p);
+      break;
+    }
+    default: throw new Error(`未対応のアクション: ${action.type}`);
+  }
+  return game;
+}
+
+// ---- ai.js ----
+
+/** An intentionally readable starter opponent, not an optimal solver. */
+function chooseAIAction(game) {
+  const p = game.current, hand = game.hands[p];
+  if (game.phase === 'opening') {
+    let candidates = handPairs(game, p, Boolean(game.board));
+    if (candidates.length === 0) return { type: 'passOpen' };
+    // Reserve supreme occasionally for the next round when opening the table.
+    const tiers = { supreme: 5, civil: 4, martial: 3, common: 1 };
+    candidates = candidates.map(c => ({ ...c, value: tiers[c.role.tier] * 15 + c.role.level * .7 + c.ids.reduce((v, id) => v + tilePips(getTile(game, id)), 0) * .2 }));
+    if (game.board) {
+      candidates.sort((a, b) => a.value - b.value);
+      // Cheaper valid overwrite normally wins; occasionally seek power.
+      if (game.final || Math.random() > .16) candidates = [candidates[0]];
+      else candidates = [candidates[candidates.length - 1]];
+    } else {
+      candidates.sort((a, b) => b.value - a.value);
+      if (candidates[0].role.tier === 'supreme' && Math.random() > .55 && candidates.length > 1) candidates.shift();
+    }
+    const picked = candidates[0];
+    const flips = [false, false];
+    return { type: 'open', ids: picked.ids, flips };
+  }
+  if (game.phase === 'attachment') {
+    const options = allAttachmentMoves(game, p);
+    if (!options.length) return { type: 'passAttach' };
+    const scored = options.map(move => {
+      const points = move.placements.reduce((sum, v) => sum + v.a + v.b, 0);
+      const endValue = move.side === 'left' ? move.placements[0].a : move.side === 'right' ? move.placements[move.placements.length - 1].b : 3;
+      const compatible = hand.filter(id => !move.placements.some(v => v.id === id))
+        .filter(id => { const t = getTile(game, id); return t.a === endValue || t.b === endValue; }).length;
+      return { move, value: move.placements.length * 22 + points * .7 + compatible * 3 + (move.special ? 11 : 0) + Math.random() * 2 };
+    });
+    scored.sort((a, b) => b.value - a.value);
+    const move = scored[0].move;
+    return { type: 'attach', ids: move.placements.map(v => v.id), moveKey: move.key };
+  }
+  if (game.phase === 'adjustment') {
+    if (game.stock.length === 0) return { type: 'adjust', choice: 'none' };
+    if (hand.length < 3 && Math.random() < .6) return { type: 'adjust', choice: 'draw' };
+    if (Math.random() < .65 && hand.length >= 4) {
+      const cnt = new Map();
+      for (const id of hand) cnt.set(tileKey(getTile(game, id)), (cnt.get(tileKey(getTile(game, id))) || 0) + 1);
+      const candidates = hand.filter(id => cnt.get(tileKey(getTile(game, id))) === 1)
+        .filter(id => !['0-0', '6-6'].includes(tileKey(getTile(game, id))));
+      if (candidates.length) {
+        candidates.sort((a, b) => tilePips(getTile(game, b)) - tilePips(getTile(game, a)));
+        return { type: 'adjust', choice: 'exchange', id: candidates[0] };
+      }
+    }
+    return { type: 'adjust', choice: 'none' };
+  }
+  return null;
+}
+
+// ---- ui.js ----
+
+const $app = document.getElementById('app');
+let game = null;
+let selected = [];
+let flipped = {};
+let helpOpen = false;
+let handoff = false;
+let busy = false;
+let toastMessage = '';
+let toastTimer = null;
+const MODE_LABELS = { cpu: ['あなた', 'CPU'], local: ['プレイヤー1', 'プレイヤー2'] };
+const PIPS = {
+  0: [], 1: [[2,2]], 2: [[1,1],[3,3]], 3: [[1,1],[2,2],[3,3]],
+  4: [[1,1],[3,1],[1,3],[3,3]], 5: [[1,1],[3,1],[2,2],[1,3],[3,3]],
+  6: [[1,1],[1,2],[1,3],[3,1],[3,2],[3,3]]
+};
+const safe = (v) => String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+const nameOf = (p) => MODE_LABELS[game?.mode || 'cpu'][p];
+const endsOf = () => game?.board ? [game.board.items[0].a, game.board.items[game.board.items.length - 1].b] : null;
+const isHumanTurn = () => game && (game.mode === 'local' || game.current === 0);
+
+function pipHalf(n) {
+  return `<span class="half">${PIPS[n].map(([x,y]) => `<span class="pip" style="left:${x*25}%;top:${y*25}%"></span>`).join('')}</span>`;
+}
+function dominoMarkup(a, b, { small = false, large = false, back = false, selected = false, button = false, id = null } = {}) {
+  const cls = `domino ${small?'small ':''}${large?'large ':''}${button?'hold ':''}${selected?'selected ':''}${back?'face-down ':''}no-select`;
+  const middle = back ? '' : `${pipHalf(a)}${pipHalf(b)}`;
+  return button ? `<button class="${cls}" data-action="select" data-id="${id}" title="${a}｜${b}を選択" aria-label="${a}｜${b}を選択" aria-pressed="${selected}">${middle}</button>` : `<div class="${cls}" role="img" aria-label="${back?'裏向きの牌':`${a}｜${b}`} ">${middle}</div>`;
+}
+function tileDisplay(id, { flip = false, ...opts } = {}) {
+  const tile = getTile(game,id);
+  return dominoMarkup(flip ? tile.b : tile.a, flip ? tile.a : tile.b, { ...opts, id });
+}
+function currentHand() {
+  if (!game || (game.mode === 'cpu' && game.current === 1)) return '';
+  return game.hands[game.current].map(id => {
+    const tile = getTile(game, id);
+    const flip = Boolean(flipped[id]);
+    return `<div class="tile-wrap">${tileDisplay(id, { flip, button:true, selected:selected.includes(id) })}${game.phase==='opening' && tile.a !== tile.b ? `<button class="flip-control" data-action="flip" data-id="${id}" title="牌を反転">↻</button>` : ''}</div>`;
+  }).join('');
+}
+function formatMove(move) {
+  if (move.special) return '至尊・両側接続';
+  return move.side === 'left' ? '左端' : '右端';
+}
+function movesMarkup() {
+  const moves = attachmentMoves(game, selected);
+  if (!moves.length) return `<div class="empty-action">${selected.length ? '選んだ牌は今の開放端に接続できないよ' : '1枚か2枚を選んで接続方法を確認しよう'}</div>`;
+  return `<div class="move-options">${moves.map(move => `<button class="move-option" data-action="attach" data-key="${safe(move.key)}">${move.special?'✦ ':''}${formatMove(move)}へ${move.placements.length}枚<span>${move.placements.map(v=>`[${v.a}｜${v.b}]`).join(' → ')} · +${move.placements.reduce((n,v)=>n+v.a+v.b,0)}点</span></button>`).join('')}</div>`;
+}
+function actionPanel() {
+  const isCPU = !isHumanTurn();
+  if (isCPU) return `<div class="help-text">CPUが次の一手を考えているよ…</div>`;
+  if (game.phase === 'opening') {
+    const ready = selected.length === 2;
+    const role = ready ? roleOf(game,selected) : null;
+    const allowed = role && isStronger(role, game.openingRole);
+    const pending = game.board ? 'より強い役で上書きするか、見送って付札へ' : '手札から2枚選んで最初の役を置こう';
+    return `<div class="action-head"><strong>${game.board?'上書き勝負':'最初の役を出す'}</strong><span class="small-label">天九</span></div>
+      <p class="help-text">${pending}${game.final?' · 最終局（パスで脱落）':''}</p>
+      ${role ? `<div class="role-preview"><span>選択した役<br><strong>${safe(role.name)}</strong></span><span>役点 +${role.points} / ピップ +${selected.reduce((s,id)=>s+tilePips(getTile(game,id)),0)} ${!allowed?'<br>※ 上書き不可':''}</span></div>` : ''}
+      <div class="action-buttons"><button class="button primary" data-action="open" ${!ready||!allowed?'disabled':''}>${game.board?'この役で上書き':'役を場に出す'} ↗</button>
+      ${(game.board || game.final) ? `<button class="button quiet" data-action="passOpen">${game.final?'パスして脱落':'上書きを見送る'}</button>` : ''}
+      ${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
+  }
+  if (game.phase === 'attachment') {
+    return `<div class="action-head"><strong>付札を選ぼう</strong><span class="small-label">ドミノ</span></div>
+      <p class="help-text">手札から1〜2枚選択して接続先を決めよう · 左右どちらにも伸ばせるよ${game.final?' · 最終局のパスは即脱落':''}</p>
+      ${movesMarkup()}
+      <div class="action-buttons"><button class="button quiet" data-action="passAttach">${game.final?'パスして脱落':'パス · 1枚引く'}</button>${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
+  }
+  if (game.phase === 'adjustment') {
+    return `<div class="action-head"><strong>手札調整</strong><span class="small-label">交換 / 補充</span></div><p class="help-text">この局間で各プレイヤー1回だけ選べるよ · 交換牌は公開除外されるよ</p>
+      <div class="action-buttons"><button class="button primary" data-action="adjust-draw">1枚ドロー</button><button class="button" data-action="adjust-exchange" ${selected.length!==1?'disabled':''}>${selected.length===1?'選んだ1枚を交換':'交換する牌を1枚選ぶ'}</button><button class="button quiet" data-action="adjust-none">何もしない</button></div>`;
+  }
+  return '';
+}
+function boardMarkup() {
+  if (!game.board) return `<div class="board-empty"><div class="symbol">◇</div><strong>盤面はまだ空だよ</strong><small>平場で最初の役を置いて始めよう</small></div>`;
+  const items = game.board.items, split = game.board.splitIndex;
+  const leftItems = items.slice(0,split), rightItems=items.slice(split);
+  const renderItems = (group) => group.map(v=>dominoMarkup(v.a,v.b)).join('');
+  return `<div class="board-strip"><span class="edge-marker left" title="左の開放端">${items[0].a}</span><div class="board-group">${renderItems(leftItems)}</div><span class="root-joint" title="平場の2枚を繋ぐ中央の境界">✦</span><div class="board-group">${renderItems(rightItems)}</div><span class="edge-marker right" title="右の開放端">${items[items.length-1].b}</span></div>`;
+}
+function phaseLabel() {
+  if (game.phase === 'opening') return '01 · 平場 / 上書き';
+  if (game.phase === 'attachment') return '02 · 付札';
+  if (game.phase === 'adjustment') return '03 · 手札調整';
+  return '終局';
+}
+function scoreCard(p) {
+  return `<div class="score-person ${game.current===p&&game.phase!=='finished'?'active':''}"><div><div class="player-name">${p===0?'◈':'◇'} ${nameOf(p)} ${game.finalOut[p]?'· 脱落':''}</div><div class="player-detail">手札 ${game.hands[p].length}枚 / 役 ${game.scores[p].role} / 付札等 ${game.scores[p].pips}</div></div><div class="points">${totalScore(game,p)}</div></div>`;
+}
+function sideMarkup() {
+  const rows = game.rounds.map(r => `<tr><td>第${r.round}局</td><td>${r.role[0]+r.pips[0]+r.honba[0]}</td><td>${r.role[1]+r.pips[1]+r.honba[1]}</td></tr>`).join('');
+  const closed = game.discard.slice(-10).reverse();
+  return `<aside class="side-column">
+  <section class="panel"><div class="side-section"><div class="side-title"><h3>得点ボード</h3><span class="small-label">SCORE</span></div>${scoreCard(0)}${scoreCard(1)}<div class="round-lbl">※ 終局時にボーナス・残牌点を精算するよ</div></div>
+  <div class="side-section"><div class="side-title"><h3>進行状況</h3></div><div class="side-stats"><div class="statbox"><div class="number">${game.stock.length}</div><div class="label">山札</div></div><div class="statbox"><div class="number">${game.discard.length}</div><div class="label">公開除外</div></div><div class="statbox"><div class="number">${game.honba}</div><div class="label">本場</div></div></div>
+  <details class="drawer"><summary>局別スコアと内訳を表示</summary><table class="ledger"><thead><tr><th>局</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${rows}<tr class="total"><td>累計</td><td>${totalScore(game,0)}</td><td>${totalScore(game,1)}</td></tr></tbody></table><p class="footnote">本場は最終上書き者が総取り · 調整中の得点は含まれないよ</p></details>
+  </div></section>
+  <section class="panel"><div class="side-section"><div class="side-title"><h3>役の早見表</h3><span class="small-label">RANKS</span></div><div class="mini-role-list"><div class="mini-role"><span>✦ 至尊</span><b>20点</b></div><div class="mini-role"><span>Ⅱ 文牌 · 同じ牌2枚</span><b>15点</b></div><div class="mini-role"><span>Ⅲ 武牌 · 指定9組</span><b>10点</b></div><div class="mini-role"><span>Ⅳ 雑 · その他</span><b>5点</b></div></div><button class="button quiet tight full" style="margin-top:14px" data-action="help">武牌9種を見る →</button></div></section>
+  <section class="panel"><div class="side-section"><div class="side-title"><h3>公開除外</h3><span class="small-label">DISCARD</span></div><div class="discards ${closed.length?'':'empty'}">${closed.length ? closed.map(id=>tileDisplay(id,{small:true})).join('') : 'まだ除外された牌はないよ'}</div>${game.discard.length>10?`<details class="drawer"><summary>すべての除外牌（${game.discard.length}枚）</summary><div class="discards" style="margin:10px 0">${game.discard.map(id=>tileDisplay(id,{small:true})).join('')}</div></details>`:''}</div></section>
+  <section class="panel"><div class="side-section"><div class="side-title"><h3>対局ログ</h3></div>${game.history.slice(0,8).map(l=>`<div class="log-entry"><small>${l.round}局</small>${safe(l.text)}</div>`).join('')}</div></section>
+  </aside>`;
+}
+function gameMarkup() {
+  const current=game.current, human=isHumanTurn(), show=human&&!handoff;
+  const hand = show?`<div class="hand-strip">${currentHand() || '<div class="empty-action">手札がないよ</div>'}</div>`:`<div class="hand-privacy">${game.mode==='cpu'?'CPUの手札は非公開': '次のプレイヤーが手札を確認するまで非公開'}</div>`;
+  const ends=endsOf();
+  return `<section class="game-layout"><div class="main-column">
+    <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?'FINAL ROUND':`ROUND ${String(game.round).padStart(2,'0')}`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${current===1?'cpu':''}"></i>${nameOf(current)}の番</div></div>
+    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div><div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>左端 <b>${ends?ends[0]:'—'}</b></span><span>通常の付札は同じ数字に接続</span><span>右端 <b>${ends?ends[1]:'—'}</b></span></div></section>
+    <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${human?nameOf(current):'CPU'}の手札 ${game.hands[current].length}枚</h2></div><span class="pill">選択 ${selected.length} / 2</span></div>${hand}<div class="action-area">${show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
+   </div>${sideMarkup()}</section>`;
+}
+function headerMarkup() {
+  return `<header class="masthead"><div class="brand"><div class="brand-symbol">賽</div><div><div class="brand-text">賽棋 <span style="font-size:13px;color:var(--gold);letter-spacing:.05em">QUAD6</span></div><div class="brand-sub">THE DOMINO STRATEGY GAME</div></div></div><div class="header-actions">${game?`<span class="pill">${game.mode==='cpu'?'VS CPU':'LOCAL 2P'}</span>`:''}<button class="button quiet tight" data-action="help">ルール</button>${game?'<button class="button tight" data-action="restart">新しい対局</button>':''}</div></header>`;
+}
+function introDomino(a,b,extra='') { return `<div class="intro-domino" ${extra}>${dominoMarkup(a,b,{large:true})}</div>`; }
+function homeMarkup(){
+  return `<main class="intro"><div class="intro-copy"><span class="eyebrow">A GAME OF FIFTY-SIX TILES</span><h1>二人で競う。<br><em>五十六の選択。</em></h1><p class="lead">天九の「役」と、ドミノの「接続」。<br>上書きで競り、牌を繋ぎ、山の行方を読む。<br>道具は56枚のドミノと紙と鉛筆だけ。<br>古くて新しい、2人用の知略ゲーム。</p><div class="intro-actions"><button class="button primary large" data-action="start-cpu">CPUと対戦する →</button><button class="button large" data-action="start-local">同じ端末で2人対戦</button></div><div class="intro-feature"><div><b>56</b>DOMINO TILES</div><div><b>9</b>STARTING HAND</div><div><b>2</b>PLAYERS</div><div><b>0</b>INSTALL REQUIRED</div></div></div><div class="intro-visual"><div class="intro-mandala"></div>${introDomino(6,6)}${introDomino(0,0)}${introDomino(5,3)}${introDomino(2,4)}<div class="intro-title"><div class="kanji">賽棋</div><div class="roman">QUAD6</div><div class="intro-foot">A WAR OF WITS</div></div></div></main>`;
+}
+function helpMarkup() {
+  const examples = MARTIAL.map(([name, a, b]) => `<tr><td>${name}</td><td>[${a.split('-').join('｜')}] + [${b.split('-').join('｜')}]</td></tr>`).join('');
+  return `<div class="overlay" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-label="ルールブック"><span class="eyebrow">HOW TO PLAY · VER 0.3</span><h2>賽棋のあそびかた</h2><p>2人に9枚ずつ配ってスタート · 役を作って場に出し、その後は数字を繋ぐ · 手札をなくすか山札が尽きたら精算するよ</p>
+  <h3>① 平場：天九</h3><p>先攻が2枚で役を出し、相手はより強い役で上書きできるよ · 上書きされた牌は公開除外されるけど、得点は残る · 上書きが終わったら最後の役を起点に付札へ進むよ · 本場は最後の上書き者が総取りだよ</p>
+  <table class="mini-table"><tr><th>階級</th><th>役</th><th>役点</th></tr><tr><td>最高</td><td>至尊 [6｜6] + [0｜0]</td><td>20</td></tr><tr><td>上</td><td>文牌：同じ牌2枚</td><td>15</td></tr><tr><td>中</td><td>武牌：次の指定9組</td><td>10</td></tr><tr><td>下</td><td>雑：その他の2枚</td><td>5</td></tr></table>
+  <h3>武牌9種の役表</h3><table class="mini-table"><tr><th>役</th><th>2枚組</th></tr>${examples}</table>
+  <p class="footnote">文牌は原則ピップ合計で比較するよ · ただし [0｜0] の対子だけは [6｜6] の対子に勝つ特例があるよ · 雑同士の上書きは不可としているよ</p>
+  <h3>② 付札：ドミノ</h3><p>1手で1枚か2枚を選んで、盤面の左右の開放端に同じ数字を繋ぐよ · 2枚なら同じ方向へ連続接続するよ · ただし至尊の2枚だけは、開放端が0と6のときに両端へ同時に配置できるよ</p>
+  <h3>③ パスと局の終了</h3><p>通常の付札でパスすると山札から1枚引くよ · 両者が連続パスしたら場の牌をすべて公開除外し、局と本場をリセットするよ · 局間はドロー / 1枚の公開交換 / 何もしない、から各自1回選べるよ</p>
+  <h3>④ 終局と得点</h3><p>手札0枚なら早アガリで即終了、山札0枚なら最後の付札を続けて精算するよ · 最終付札中のパスは脱落になるよ</p>
+  <table class="mini-table"><tr><th>項目</th><th>計算</th></tr><tr><td>役とピップ</td><td>出したときに加算</td></tr><tr><td>本場</td><td>最終上書き者に1本×3点</td></tr><tr><td>早アガリ</td><td>+15点</td></tr><tr><td>山を最後に引いた人</td><td>−15点（強制補充を除く）</td></tr><tr><td>残った手札</td><td>ピップ合計÷2、切り上げで減点</td></tr></table>
+  <p class="footnote">実装上の暫定裁定：平場の2枚は中央に並べ、外側に見えている数字を左右の開放端にするよ · 平場の見送り側が最初の付札を行うよ · 雑同士の上書きは不可 · 付札の至尊には役点は追加しないよ · 先攻は局ごと交代するよ</p>
+  <div class="modal-actions"><button class="button primary" data-action="close-help">盤面に戻る</button></div></div></div>`;
+}
+function endMarkup() {
+  const scores = [totalScore(game,0),totalScore(game,1)];
+  const winner = scores[0]===scores[1]?null:scores[0]>scores[1]?0:1;
+  const itemRows = ['role','pips','honba','early','lastDraw','remaining'];
+  const labels = {role:'役点',pips:'ピップ点',honba:'本場点',early:'早アガリ',lastDraw:'山枯らし減点',remaining:'残牌減点'};
+  return `<div class="overlay"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">GAME SET · FINAL SCORE</span><h2>${winner===null?'引き分け！':`${nameOf(winner)}の勝利！`}</h2><p>${game.endReason==='early'?'早アガリで終局 · 総得点を精算したよ':'山札が尽きて最終出牌終了 · 総得点を精算したよ'}</p><div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div><table class="mini-table"><tr><th>内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>合計</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table><div class="modal-actions"><button class="button primary large" data-action="play-again">もう一戦！</button><button class="button quiet" data-action="back-home">タイトルへ</button></div></div></div>`;
+}
+function handoffMarkup() {
+  return `<div class="overlay"><div class="modal privacy-view" role="dialog" aria-modal="true"><div class="symbol">◇</div><span class="eyebrow">PASS THE DEVICE</span><div class="title">${nameOf(game.current)}の番だよ</div><p>相手に手札が見えないよう端末を渡してね</p><div class="modal-actions" style="justify-content:center"><button class="button primary large" data-action="reveal">手札を確認して始める</button></div></div></div>`;
+}
+function render() {
+  $app.innerHTML = `<div class="app-shell">${headerMarkup()}${game ? gameMarkup():homeMarkup()}<footer class="subfoot"><span>© Quad6 / 賽棋 · 2人用試遊版 · 無料 · インストール不要</span><span>天九の役 × ドミノの接続 × 累積得点</span></footer></div>${helpOpen?helpMarkup():''}${game&&game.phase==='finished'&&!helpOpen?endMarkup():''}${game&&handoff&&game.phase!=='finished'&&!helpOpen?handoffMarkup():''}${toastMessage?`<div class="toast" role="status">${safe(toastMessage)}</div>`:''}`;
+}
+function notify(message) {
+  toastMessage = message;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastMessage = ''; render(); }, 3100);
+  render();
+}
+function resetTurnSelection() { selected = []; flipped = {}; }
+function start(mode, replay = false) {
+  const seed = Date.now() + Math.floor(Math.random()*100000);
+  game = newGame({ mode, initialHand:9, seed });
+  helpOpen = false;
+  handoff = mode==='local';
+  busy = false;
+  resetTurnSelection();
+  render();
+}
+function run(action) {
+  if (!game) return;
+  const prior = game.current;
+  try { dispatch(game, action); }
+  catch (e) { notify(e.message); return; }
+  resetTurnSelection();
+  if (game.mode==='local' && game.phase!=='finished' && game.current!==prior) handoff = true;
+  render();
+  if (game.mode==='cpu' && game.phase!=='finished') scheduleCPU();
+}
+function scheduleCPU() {
+  if (!game || game.mode!=='cpu' || game.current!==1 || busy || game.phase==='finished' || helpOpen) return;
+  busy = true;
+  render();
+  setTimeout(() => {
+    busy=false;
+    if (!game || game.current!==1 || game.phase==='finished' || helpOpen) return;
+    try {
+      const action = chooseAIAction(game);
+      if (action) dispatch(game,action);
+    } catch(e) { notify(`CPU処理エラー: ${e.message}`); return; }
+    resetTurnSelection();
+    render();
+    if (game.mode==='cpu' && game.current===1 && game.phase!=='finished') scheduleCPU();
+  }, 530);
+}
+$app.addEventListener('click', event => {
+  const target = event.target.closest('[data-action]');
+  if (!target) return;
+  const action = target.dataset.action;
+  if (action==='help') { helpOpen=true;render();return; }
+  if (action==='close-help') { helpOpen=false;render();scheduleCPU();return; }
+  if (action==='start-cpu') return start('cpu');
+  if (action==='start-local') return start('local');
+  if (action==='play-again') return start(game?.mode || 'cpu',true);
+  if (action==='back-home') {game=null;handoff=false;helpOpen=false;render();return;}
+  if (action==='restart') { if(window.confirm('現在の対局を終了して最初からやり直す？')) start(game.mode); return; }
+  if (action==='reveal') { handoff=false;render();return; }
+  if (!game || game.phase==='finished' || helpOpen || handoff || !isHumanTurn()) return;
+  const id = Number(target.dataset.id);
+  if (action==='select') {
+    if (selected.includes(id)) selected=selected.filter(v=>v!==id);
+    else if (selected.length<2) selected.push(id);
+    else selected=[selected[1],id];
+    render();return;
+  }
+  if (action==='flip') {flipped[id]=!flipped[id];render();return;}
+  if (action==='clear') {resetTurnSelection();render();return;}
+  if (action==='open') return run({type:'open',ids:[...selected],flips:selected.map(id=>Boolean(flipped[id]))});
+  if (action==='passOpen') return run({type:'passOpen'});
+  if (action==='attach') return run({type:'attach',ids:[...selected],moveKey:target.dataset.key});
+  if (action==='passAttach') return run({type:'passAttach'});
+  if (action==='adjust-draw') return run({type:'adjust',choice:'draw'});
+  if (action==='adjust-none') return run({type:'adjust',choice:'none'});
+  if (action==='adjust-exchange') return run({type:'adjust',choice:'exchange',id:selected[0]});
+});
+render();
+
+</script>
+</body>
+</html>

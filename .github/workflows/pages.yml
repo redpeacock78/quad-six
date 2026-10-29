@@ -33,6 +33,7 @@ jobs:
           node --check site/ai.js
           node --check site/ui.js
           npm test
+          npm run build:standalone
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload site

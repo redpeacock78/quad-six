@@ -31,6 +31,7 @@ jobs:
         run: |
           node --check site/engine.js
           node --check site/ai.js
+          node --check site/match.js
           node --check site/ui.js
           npm test
           npm run build:standalone

@@ -9,6 +9,7 @@ let match = null;
 let selectedFormat = 'single';
 let cpuTimer = null;
 let selected = [];
+let selectedMoveKey = null;
 let flipped = {};
 let helpOpen = false;
 let handoff = false;
@@ -54,10 +55,12 @@ function formatMove(move) {
   if (move.special) return '至尊・両側接続';
   return move.side === 'left' ? '左端' : '右端';
 }
-function movesMarkup() {
-  const moves = attachmentMoves(game, selected);
+function activeAttachmentMove(moves) {
+  return moves.find(move => move.key === selectedMoveKey) || (moves.length === 1 ? moves[0] : null);
+}
+function movesMarkup(moves, activeMove) {
   if (!moves.length) return `<div class="empty-action">${selected.length ? '選んだ牌は今の開放端に接続できないよ' : '1枚か2枚を選んで接続方法を確認しよう'}</div>`;
-  return `<div class="move-options">${moves.map(move => `<button class="move-option" data-action="attach" data-key="${safe(move.key)}">${move.special?'✦ ':''}${formatMove(move)}へ${move.placements.length}枚<span>${move.placements.map(v=>`[${v.a}｜${v.b}]`).join(' → ')} · +${move.placements.reduce((n,v)=>n+v.a+v.b,0)}点</span></button>`).join('')}</div>`;
+  return `<div class="move-options" aria-label="付札の接続先">${moves.map(move => `<button type="button" class="move-option${activeMove?.key === move.key ? ' chosen' : ''}" data-action="choose-attachment" data-key="${safe(move.key)}" aria-pressed="${activeMove?.key === move.key}">${move.special?'✦ ':''}${formatMove(move)}へ${move.placements.length}枚<span>${move.placements.map(v=>`[${v.a}｜${v.b}]`).join(' → ')} · +${move.placements.reduce((n,v)=>n+v.a+v.b,0)}点</span></button>`).join('')}</div>`;
 }
 function actionPanel() {
   const isCPU = !isHumanTurn();
@@ -75,10 +78,12 @@ function actionPanel() {
       ${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
   if (game.phase === 'attachment') {
-    return `<div class="action-head"><strong>付札を選ぼう</strong><span class="small-label">ドミノ</span></div>
-      <p class="help-text">手札から1〜2枚選択して接続先を決めよう · 左右どちらにも伸ばせるよ${game.final?' · 最終局のパスは即脱落':''}</p>
-      ${movesMarkup()}
-      <div class="action-buttons"><button class="button quiet" data-action="passAttach">${game.final?'パスして脱落':'パス · 1枚引く'}</button>${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
+    const moves = attachmentMoves(game, selected);
+    const activeMove = activeAttachmentMove(moves);
+    return `<div class="action-head"><strong>付札を出す</strong><span class="small-label">ドミノ</span></div>
+      <p class="help-text">① 手札から1〜2枚選ぶ → ② 接続先を選ぶ → ③「付札を場に出す」で確定${game.final?' · 最終局のパスは即脱落':''}</p>
+      ${movesMarkup(moves, activeMove)}
+      <div class="action-buttons attachment-actions"><button class="button primary" data-action="attach" ${activeMove?'':'disabled'}>付札を場に出す ↗</button><button class="button quiet" data-action="passAttach">${game.final?'パスして脱落':'パス · 1枚引く'}</button>${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
   if (game.phase === 'adjustment') {
     return `<div class="action-head"><strong>手札調整</strong><span class="small-label">交換 / 補充</span></div><p class="help-text">この局間で各プレイヤー1回だけ選べるよ · 交換牌は公開除外されるよ</p>
@@ -205,7 +210,7 @@ function notify(message) {
   toastTimer = setTimeout(() => { toastMessage = ''; render(); }, 3100);
   render();
 }
-function resetTurnSelection() { selected = []; flipped = {}; }
+function resetTurnSelection() { selected = []; selectedMoveKey = null; flipped = {}; }
 function goHome(confirmExit = true) {
   if (confirmExit && game && game.phase !== 'finished' && !window.confirm('現在の対局を終了してタイトルへ戻る？ 進行状況は失われます。')) return;
   clearTimeout(cpuTimer);
@@ -318,13 +323,23 @@ $app.addEventListener('click', event => {
     if (selected.includes(id)) selected=selected.filter(v=>v!==id);
     else if (selected.length<2) selected.push(id);
     else selected=[selected[1],id];
+    selectedMoveKey = null;
     render();return;
   }
   if (action==='flip') {flipped[id]=!flipped[id];render();return;}
   if (action==='clear') {resetTurnSelection();render();return;}
   if (action==='open') return run({type:'open',ids:[...selected],flips:selected.map(id=>Boolean(flipped[id]))});
   if (action==='passOpen') return run({type:'passOpen'});
-  if (action==='attach') return run({type:'attach',ids:[...selected],moveKey:target.dataset.key});
+  if (action==='choose-attachment') {
+    if (!attachmentMoves(game, selected).some(move => move.key === target.dataset.key)) return;
+    selectedMoveKey = target.dataset.key;
+    render();return;
+  }
+  if (action==='attach') {
+    const move = activeAttachmentMove(attachmentMoves(game, selected));
+    if (!move) return;
+    return run({type:'attach',ids:[...selected],moveKey:move.key});
+  }
   if (action==='passAttach') return run({type:'passAttach'});
   if (action==='adjust-draw') return run({type:'adjust',choice:'draw'});
   if (action==='adjust-none') return run({type:'adjust',choice:'none'});

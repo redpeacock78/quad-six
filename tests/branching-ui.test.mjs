@@ -34,15 +34,15 @@ function fixture() {
   return {app,ctx,click,game:ctx.fixtureGame,branchTile:ctx.fixtureBranchTile};
 }
 
-test('the board visually renders a perpendicular double with three numbered open ends',()=>{
+test('the board visually renders a perpendicular double with correctly positioned endpoint labels',()=>{
   const {app,game}=fixture();
   assert.match(app.innerHTML,/board-graph/);
   assert.match(app.innerHTML,/<svg/);
   assert.match(app.innerHTML,/width="46" height="72"/);
   for(const number of [1,2,3]) assert.match(app.innerHTML,new RegExp(`端点${number}`));
-  assert.match(app.innerHTML,/左端（端点1・4）/);
-  assert.match(app.innerHTML,/上端（端点2・4）/);
-  assert.match(app.innerHTML,/下端（端点3・4）/);
+  assert.match(app.innerHTML,/左（端点1・4）/);
+  assert.match(app.innerHTML,/左上（端点2・4）/);
+  assert.match(app.innerHTML,/左下（端点3・4）/);
   assert.equal(game.board.ports.length,3);
   const graph=app.innerHTML.split('class="board-graph"')[1];
   assert.ok(graph, 'graph section must exist');
@@ -63,9 +63,9 @@ test('player can explicitly select among all three spinner branches',()=>{
   const {app,ctx,click,game,branchTile}=fixture();
   click('select',{id:String(branchTile)});
   assert.equal((app.innerHTML.match(/data-action="choose-attachment"/g)||[]).length,3);
-  assert.match(app.innerHTML,/左端（端点1・4）へ1枚/);
-  assert.match(app.innerHTML,/上端（端点2・4）へ1枚/);
-  assert.match(app.innerHTML,/下端（端点3・4）へ1枚/);
+  assert.match(app.innerHTML,/左（端点1・4）へ1枚/);
+  assert.match(app.innerHTML,/左上（端点2・4）へ1枚/);
+  assert.match(app.innerHTML,/左下（端点3・4）へ1枚/);
   assert.match(app.innerHTML,/data-action="attach" disabled/);
   const keys=game.board.ports.map(p=>p.key);
   const desiredKey=keys[2];
@@ -79,7 +79,7 @@ test('player can explicitly select among all three spinner branches',()=>{
   assert.match(app.innerHTML,/board-graph/);
 });
 
-test('a spinner connected to the upper branch carries up/left/right direction labels',()=>{
+test('nested spinner labels follow rendered positions even when engine directions differ',()=>{
   const {app,ctx,click,game}=fixture();
   const remaining=game.tiles.find(t=>t.a===4 && t.b===4 && game.hands[0].includes(t.id));
   assert.ok(remaining);
@@ -89,9 +89,13 @@ test('a spinner connected to the upper branch carries up/left/right direction la
   click('attach');
   const born=game.board.ports.filter(p=>p.owner===remaining.id);
   assert.equal(born.map(p=>p.direction).join(','),'up,left,right');
-  assert.ok(app.innerHTML.includes('上端（端点'));
-  assert.ok(app.innerHTML.includes('左端（端点'));
-  assert.ok(app.innerHTML.includes('右端（端点'));
+  // All five visually extend left of their parents, regardless of the
+  // abstract up/left/right direction labels used by the game engine.
+  const graph=app.innerHTML.split('class="board-graph"')[1];
+  const screenLabels=[...graph.matchAll(/data-port-label="([^"]+)"/g)].map(m=>m[1]);
+  assert.equal(screenLabels.length,5);
+  assert.ok(screenLabels.every(label=>label.startsWith('左')),
+    'every visible endpoint is on the left side of its owning tile');
 });
 
 test('the historical 6-2-2-0-3-3 screenshot is a LEFT branch and never a false right-side connection',()=>{
@@ -138,4 +142,47 @@ test('the historical 6-2-2-0-3-3 screenshot is a LEFT branch and never a false r
     assert.ok(placed.x<positioned[0].x,'left-attached tile must render LEFT of left root');
   // Orientation shown on the left must be mirrored from engine order.
   assert.deepEqual(positioned.slice(2).map(t=>[t.a,t.b]),[[2,2],[0,2],[3,0],[3,3]]);
+});
+
+test('right-side spinner on a logically downward branch is labeled from actual screen geometry',()=>{
+  const {app,ctx}=fixture();
+  const info=runInContext(`(() => {
+    start('local','single');handoff=false;
+    const find=k=>game.tiles.filter(t=>tileKey(t)===k).map(t=>t.id);
+    game.current=0;game.hands[0]=game.tiles.map(t=>t.id);game.hands[1]=[];
+    dispatch(game,{type:'open',ids:[find('0-2')[0],find('0-4')[0]]});
+    game.current=0;game.phase='attachment';
+    const play=(types,predicate)=>{
+      const ids=types.map(k=>find(k).find(id=>game.hands[0].includes(id)));
+      const move=attachmentMoves(game,ids).find(predicate);
+      if(!move)throw Error('missing expected move');
+      dispatch(game,{type:'attach',ids,moveKey:move.key});
+      game.current=0;game.phase='attachment';
+    };
+    play(['4-4'],m=>m.side==='right');
+    play(['4-5','3-5'],m=>m.direction==='down');
+    play(['3-3'],m=>m.direction==='down');
+    render();
+    const layout=graphLayout(game.board);
+    return boardPorts(game.board).map((port,i)=>({
+      key:port.key,
+      logicalDirection:port.direction,
+      screenLabel:formatPort(port,i,layout),
+      dx:layout.px(layout.portPositions.get(port.key))-layout.px(layout.positions.get(port.owner)),
+      dy:layout.portPositions.get(port.key).y-layout.positions.get(port.owner).y
+    }));
+  })()`,ctx);
+  const three=info.filter(p=>p.screenLabel.endsWith('・3）'));
+  assert.equal(three.length,3);
+  assert.equal(three.map(p=>p.logicalDirection).join(','),'down,left,right');
+  assert.equal(three.map(p=>p.screenLabel.replace(/（.*/, '')).join(','),'右,右上,右下');
+  // The physical vector wins over the engine's abstract "down,left,right".
+  for (const p of info) {
+    assert.ok(p.dx>0,'all staged endpoint markers are right of their owner');
+    const expected=p.dy< -20?'右上':p.dy>20?'右下':'右';
+    assert.ok(p.screenLabel.startsWith(expected),`wrong visual direction for ${p.key}`);
+  }
+  const html=app.innerHTML;
+  for(const p of three)assert.ok(html.includes(p.screenLabel),
+    'candidate and graph marker must share the same display label');
 });

@@ -16,7 +16,7 @@ test('format selection, local handoff and human opening can be rendered', async 
   click('select-format',{format:'hanchan'});
   assert.match(app.innerHTML, /aria-pressed="true"[^>]*>半荘戦/);
   click('start-local');
-  assert.match(app.innerHTML, /第1\/8ゲーム/);
+  assert.match(app.innerHTML, /1\/8親番/);
   assert.match(app.innerHTML, /250/);
   assert.match(app.innerHTML, /PASS THE DEVICE/);
   click('reveal');

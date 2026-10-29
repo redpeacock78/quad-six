@@ -16,11 +16,11 @@ async function mountUI() {
   const deps={...engine,...ai,...matchLib};
   const names = 'newGame dispatch roleOf isStronger attachmentMoves getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner'.split(' ');
   const factory = new Function('deps','document','window',
-    'const {'+names.join(',')+'}=deps;\n'+source+\`
+    'const {'+names.join(',')+'}=deps;\n'+source+`
 return {
   state(){return {game,match,helpOpen,inspectFinalBoard,handoff};},
   endGame(){game.phase='finished';game.endReason='early';settleIfFinished();render();}
-};\`);
+};`);
   const ui = factory(deps,{getElementById:id=>id==='app'?app:null},mockWindow);
   return {
     app, ...ui,

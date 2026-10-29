@@ -14,7 +14,7 @@ async function mountUI() {
   let confirmExit = false;
   const mockWindow={ confirm:()=>confirmExit, scrollTo(){} };
   const deps={...engine,...ai,...matchLib};
-  const names = 'newGame dispatch roleOf isStronger attachmentMoves getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner'.split(' ');
+  const names = 'newGame dispatch roleOf isStronger attachmentMoves getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner matchRoundName'.split(' ');
   const factory = new Function('deps','document','window',
     'const {'+names.join(',')+'}=deps;\n'+source+`
 return {

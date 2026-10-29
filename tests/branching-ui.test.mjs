@@ -39,6 +39,9 @@ test('the board visually renders a perpendicular double with three numbered open
   assert.match(app.innerHTML,/<svg/);
   assert.match(app.innerHTML,/width="46" height="72"/);
   for(const number of [1,2,3]) assert.match(app.innerHTML,new RegExp(`端点${number}`));
+  assert.match(app.innerHTML,/左端（端点1・4）/);
+  assert.match(app.innerHTML,/上端（端点2・4）/);
+  assert.match(app.innerHTML,/下端（端点3・4）/);
   assert.equal(game.board.ports.length,3);
   const graph=app.innerHTML.split('class="board-graph"')[1];
   assert.ok(graph, 'graph section must exist');
@@ -59,6 +62,9 @@ test('player can explicitly select among all three spinner branches',()=>{
   const {app,ctx,click,game,branchTile}=fixture();
   click('select',{id:String(branchTile)});
   assert.equal((app.innerHTML.match(/data-action="choose-attachment"/g)||[]).length,3);
+  assert.match(app.innerHTML,/左端（端点1・4）へ1枚/);
+  assert.match(app.innerHTML,/上端（端点2・4）へ1枚/);
+  assert.match(app.innerHTML,/下端（端点3・4）へ1枚/);
   assert.match(app.innerHTML,/data-action="attach" disabled/);
   const keys=game.board.ports.map(p=>p.key);
   const desiredKey=keys[2];
@@ -70,4 +76,19 @@ test('player can explicitly select among all three spinner branches',()=>{
   assert.equal(game.hands[0].includes(branchTile),false);
   assert.equal(game.board.ports.length,3);
   assert.match(app.innerHTML,/board-graph/);
+});
+
+test('a spinner connected to the upper branch carries up/left/right direction labels',()=>{
+  const {app,ctx,click,game}=fixture();
+  const remaining=game.tiles.find(t=>tileKey(t)==='4-4' && game.hands[0].includes(t.id));
+  assert.ok(remaining);
+  click('select',{id:String(remaining.id)});
+  const choice=runInContext(`attachmentMoves(game,[${remaining.id}]).find(m=>m.direction==='up').key`,ctx);
+  click('choose-attachment',{key:choice});
+  click('attach');
+  const born=game.board.ports.filter(p=>p.owner===remaining.id);
+  assert.deepEqual(born.map(p=>p.direction),['up','left','right']);
+  assert.ok(app.innerHTML.includes('上端（端点'));
+  assert.ok(app.innerHTML.includes('左端（端点'));
+  assert.ok(app.innerHTML.includes('右端（端点'));
 });

@@ -237,14 +237,22 @@ export function boardPorts(board) {
   if(!board)return [];
   if(Array.isArray(board.ports))return board.ports;
   const a=board.items||[];
-  return a.length?[{key:'root-left',owner:a[0].id,pip:a[0].a,side:'left',slot:0,root:true},{key:'root-right',owner:a[a.length-1].id,pip:a[a.length-1].b,side:'right',slot:0,root:true}]:[];
+  return a.length?[{key:'root-left',owner:a[0].id,pip:a[0].a,side:'left',direction:'left',slot:0,root:true},{key:'root-right',owner:a[a.length-1].id,pip:a[a.length-1].b,side:'right',direction:'right',slot:0,root:true}]:[];
 }
 function initialPorts(items) {
-  return [{key:'root-left',owner:items[0].id,pip:items[0].a,side:'left',slot:0,root:true},
-    {key:'root-right',owner:items[1].id,pip:items[1].b,side:'right',slot:0,root:true}];
+  return [{key:'root-left',owner:items[0].id,pip:items[0].a,side:'left',direction:'left',slot:0,root:true},
+    {key:'root-right',owner:items[1].id,pip:items[1].b,side:'right',direction:'right',slot:0,root:true}];
 }
-function outgoingPorts(v,side){
-  return Array.from({length:v.a===v.b?3:1},(_,slot)=>({key:`tile-${v.id}-${slot}`,owner:v.id,pip:v.b,side,slot,root:false}));
+// Doubles open three directions: straight and the two perpendicular arms.
+// Inherited branch direction is independent of the original root side.
+function outgoingPorts(v, parentPort) {
+  const forward = parentPort.direction ?? parentPort.side;
+  const perpendicular = (forward === 'left' || forward === 'right') ? ['up', 'down'] : ['left', 'right'];
+  const directions = v.a === v.b ? [forward, ...perpendicular] : [forward];
+  return directions.map((direction, slot) => ({
+    key: `tile-${v.id}-${slot}`, owner: v.id, pip: v.b,
+    side: parentPort.side, direction, slot, root: false
+  }));
 }
 /** Normal play is limited to one active endpoint; only Supreme splits two. */
 export function attachmentMoves(game,ids,player=game.current){
@@ -260,6 +268,7 @@ export function attachmentMoves(game,ids,player=game.current){
     const key=`${target}:${placements.map(v=>`${v.id}/${v.a}/${v.b}`).join(':')}`;
     out.push({key,portKey:port.key,portKey2:secondPort?.key||null,
       side:special?'both':port.root?port.side:'branch',
+      direction:port.direction ?? port.side,
       portLabel:port.root?(port.side==='left'?'左起点':'右起点'):`${port.pip}の枝（${port.key}）`,
       placements,special,endValue:placements[placements.length-1].b});
   };
@@ -354,8 +363,9 @@ export function dispatch(game, action) {
         && !(board.chosenSide==null&&!move.special&&x.root&&x.key!==port.key));
       if(board.chosenSide==null)board.chosenSide=move.special?'supreme':port.side;
       const add=(v,parentPort)=>{
-        board.items.push({...v,parent:parentPort.owner,via:parentPort.key,side:parentPort.side,slot:parentPort.slot});
-        board.ports.push(...outgoingPorts(v,parentPort.side));
+        board.items.push({...v,parent:parentPort.owner,via:parentPort.key,
+          side:parentPort.side,direction:parentPort.direction ?? parentPort.side,slot:parentPort.slot});
+        board.ports.push(...outgoingPorts(v,parentPort));
       };
       add(move.placements[0],port);
       if(move.placements.length===2){
@@ -363,7 +373,7 @@ export function dispatch(game, action) {
         else {
           // The second tile consumes the straight-ahead port of the first.
           board.ports=board.ports.filter(x=>x.key!==`tile-${move.placements[0].id}-0`);
-          add(move.placements[1],{owner:move.placements[0].id,side:port.side,slot:0,key:`tile-${move.placements[0].id}-0`});
+          add(move.placements[1],{owner:move.placements[0].id,side:port.side,direction:port.direction ?? port.side,slot:0,key:`tile-${move.placements[0].id}-0`});
         }
       }
       award(game, p, 'pips', ids.reduce((s, id) => s + tilePips(getTile(game, id)), 0));

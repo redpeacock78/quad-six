@@ -1,4 +1,4 @@
-/** Multi-game match: keeps the 56-tile game rules unchanged. */
+/** Multi-game match: 1/4/8 scheduled dealer hands, with dealer continuations. */
 import { newGame, totalScore } from './engine.js';
 
 export const MATCH_FORMATS = Object.freeze({
@@ -7,38 +7,68 @@ export const MATCH_FORMATS = Object.freeze({
   hanchan: { label: '半荘戦', games: 8 }
 });
 export const STARTING_POINTS = 250;
+export const TABLE_HONBA_UNIT = 5;
 
+/** The first dealer is random; each subsequent scheduled hand changes dealer. */
 export function createMatch({ format = 'single', mode = 'cpu', seed = Date.now(), initialHand = 9, startingPlayer = null } = {}) {
   if (!MATCH_FORMATS[format]) throw new Error('未対応の対局形式です');
   if (!['cpu', 'local'].includes(mode)) throw new Error('未対応の対戦モードです');
-  // Only the first game draws the parent at random. Later games alternate.
   if (startingPlayer === null) startingPlayer = Math.floor(Math.random() * 2);
   if (startingPlayer !== 0 && startingPlayer !== 1) throw new Error('最初の親は0か1で指定してください');
   return {
-    format, mode, initialHand, totalGames: MATCH_FORMATS[format].games,
-    gameNumber: 1, initialStarter: startingPlayer, points: [STARTING_POINTS, STARTING_POINTS],
+    format, mode, initialHand,
+    // totalGames is the number of scheduled dealer hands, NOT the maximum
+    // number of games: dealer wins may extend the match.
+    totalGames: MATCH_FORMATS[format].games,
+    gameNumber: 1, handNumber: 1, dealer: startingPlayer,
+    honba: 0, initialStarter: startingPlayer,
+    points: [STARTING_POINTS, STARTING_POINTS],
     history: [], settled: false, complete: false,
     game: newGame({ mode, seed, initialHand, startingPlayer })
   };
 }
 
-/** Each game's *difference* is transferred; the total point pool stays at 500. */
+/**
+ * Settle one complete game.
+ * A dealer's early win repeats the current scheduled hand and adds 1 honba.
+ * A child's early win or exhaustion advances the parent and resets honba.
+ * 5 × current honba is added to whoever goes out, in addition to +15 early.
+ * Single-game matches always end after one game, without table-honba scoring.
+ */
 export function settleMatchGame(match) {
   if (match.game.phase !== 'finished') throw new Error('ゲームがまだ終了していません');
   if (match.settled) return match.history.at(-1);
+  const early = match.game.endReason === 'early';
+  const winner = early ? match.game.endWinner : null;
+  if (early && winner !== 0 && winner !== 1) throw new Error('早アガリした人を判定できません');
+  const bonus = match.format !== 'single' && early ? match.honba * TABLE_HONBA_UNIT : 0;
+  if (bonus) match.game.scores[winner].tableHonba += bonus;
+
   const scores = [totalScore(match.game, 0), totalScore(match.game, 1)];
   const delta = scores[0] - scores[1];
   match.points[0] += delta;
   match.points[1] -= delta;
+
+  const repeat = match.format !== 'single' && early && winner === match.dealer;
   const record = {
-    game: match.gameNumber, scores, delta,
-    points: [...match.points],
+    game: match.gameNumber, hand: match.handNumber,
+    honba: match.honba, dealer: match.dealer,
+    earlyWinner: winner, honbaPoints: bonus, renchan: repeat,
+    scores, delta, points: [...match.points],
     winner: delta === 0 ? null : delta > 0 ? 0 : 1,
     reason: match.game.endReason
   };
   match.history.push(record);
   match.settled = true;
-  match.complete = match.gameNumber === match.totalGames;
+
+  if (repeat) {
+    match.honba++;
+  } else {
+    match.honba = 0;
+    match.handNumber++;
+    match.dealer = 1 - match.dealer;
+  }
+  match.complete = match.format === 'single' || (!repeat && record.hand === match.totalGames);
   return record;
 }
 
@@ -46,8 +76,10 @@ export function nextMatchGame(match, seed = Date.now()) {
   if (!match.settled) throw new Error('現在のゲームが終了していません');
   if (match.complete) throw new Error('対局はすでに終了しています');
   match.gameNumber++;
-  match.game = newGame({ mode: match.mode, initialHand: match.initialHand, seed,
-    startingPlayer: (match.initialStarter + match.gameNumber - 1) % 2 });
+  match.game = newGame({
+    mode: match.mode, initialHand: match.initialHand, seed,
+    startingPlayer: match.dealer
+  });
   match.settled = false;
   return match.game;
 }

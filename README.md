@@ -89,6 +89,8 @@ npm run build:standalone
 - `site/standalone.html` — 単体起動できるHTML
 - `scripts/build-standalone.mjs` — 単体HTML生成
 - `tests/match.test.mjs` — 対局形式・得点移動テスト
+- `tests/round-names.test.mjs` — 東1〜東4・南1〜南4および連荘時の局名のテスト
+- `tests/round-display.test.mjs` — 盤面・対局履歴・精算画面の局名テスト
 - `tests/scoring-v05.test.mjs` — レイズ点・早アガリ者記録・実際の連荘動作を検証
 - `tests/board-review.test.mjs` — 相手牌の秘匿表示・終局盤面レビューのテスト
 - `tests/navigation-modal.test.mjs` — GitHubリンク・タイトル遷移・モーダル枠外クリックのテスト

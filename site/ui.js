@@ -1,6 +1,6 @@
-import { newGame, dispatch, roleOf, isStronger, attachmentMoves, boardPorts, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js?v=graph-sync-20261030a';
-import { chooseAIAction } from './ai.js?v=graph-sync-20261030a';
-import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner, matchRoundName } from './match.js?v=graph-sync-20261030a';
+import { newGame, dispatch, roleOf, isStronger, attachmentMoves, boardPorts, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js?v=pip-svg-20261030b';
+import { chooseAIAction } from './ai.js?v=pip-svg-20261030b';
+import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner, matchRoundName } from './match.js?v=pip-svg-20261030b';
 
 
 const $app = document.getElementById('app');

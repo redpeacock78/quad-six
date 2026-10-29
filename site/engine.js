@@ -296,7 +296,7 @@ export function dispatch(game, action) {
       assert(ids.length === 2, '役は2枚で出してください');
       assert(ids.every(id => game.hands[p].includes(id)) && ids[0] !== ids[1], '手札を2枚選んでください');
       const role = roleOf(game, ids);
-      assert(isStronger(role, game.openingRole), '現在の役を上書きできません');
+      assert(isStronger(role, game.openingRole), '現在の役をレイズできません');
       if (game.board) {
         game.discard.push(...game.board.items.map(item => item.id));
         game.raise++;
@@ -318,7 +318,7 @@ export function dispatch(game, action) {
       assert(game.phase === 'opening', '平場ではありません');
       if (!game.final) {
         assert(game.board, '最初の役は必ず出してください');
-        record(game, `P${p + 1} 上書きを見送り`, p);
+        record(game, `P${p + 1} レイズを見送り`, p);
         settleOpening(game, p);
       } else {
         game.finalOut[p] = true;

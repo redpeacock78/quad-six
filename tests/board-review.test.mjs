@@ -33,7 +33,13 @@ function finishedMatch({ mode='cpu', opponentCount=4 }={}) {
   match.game.current=mode==='cpu'?1:0;
   match.game.hands[mode==='cpu'?1:1] = match.game.hands[1].slice(0,opponentCount);
   match.game.board={
-    items:[{id:23,a:2,b:3},{id:24,a:3,b:1}],splitIndex:1
+    items:[{id:23,a:2,b:3},{id:24,a:3,b:1}],splitIndex:1,
+    // Finished board snapshots use the same graph-port model as live games.
+    ports:[
+      {key:'root-left',owner:23,pip:2,side:'left',direction:'left',slot:0,root:true},
+      {key:'root-right',owner:24,pip:1,side:'right',direction:'right',slot:0,root:true}
+    ],
+    chosenSide:null
   };
   match.game.openingRole={name:'雑'};
   match.game.phase='finished';
@@ -72,8 +78,11 @@ test('finished match toggles from score overlay to final table and back without 
   assert.match(ui.app.innerHTML,/CPUの手牌は4枚/);
   assert.equal((ui.app.innerHTML.match(/domino small face-down no-select/g)||[]).length,4);
   assert.match(ui.app.innerHTML,/あなたの残り手札 9枚/);
-  assert.match(ui.app.innerHTML,/左端 <b>2<\/b>/);
-  assert.match(ui.app.innerHTML,/右端 <b>1<\/b>/);
+  assert.match(ui.app.innerHTML,/class="board-graph"/);
+  assert.match(ui.app.innerHTML,/開放端 <b>2か所<\/b>/);
+  assert.match(ui.app.innerHTML,/数字 <b>2・1<\/b>/);
+  assert.match(ui.app.innerHTML,/左端（端点1・2）/);
+  assert.match(ui.app.innerHTML,/右端（端点2・1）/);
   assert.match(ui.app.innerHTML,/精算結果に戻る/);
   assert.doesNotMatch(ui.app.innerHTML,/data-action="open"/);
   ui.click('back-to-result');

@@ -14,16 +14,16 @@
 
 ## 開発・起動
 
-このリポジトリには、CSS・ルールエンジン・UIを1ファイルに組み込んだ **依存なしのブラウザ版** を配置しています。
+このリポジトリには、依存パッケージ不要の **ES Modules版** と、CSS・ロジック・UIを埋め込んだ **オフライン用単体HTML版** の両方を配置しています。
 
-`site/index.html` をブラウザで直接開くだけで遊べます。ローカルサーバーで確認する場合：
+`site/standalone.html` はブラウザで直接開けます。`site/index.html`（モジュール版）のローカル確認にはサーバーを起動してください。
 
 ```sh
 python3 -m http.server 4173 --directory site
 # http://localhost:4173/
 ```
 
-分割されたエンジン・UI・テストを含む開発用アーカイブは、別途配布版に含まれています。GitHub 上の公開用ファイルは単体HTMLです。
+ルールエンジンとUIは `site/engine.js`・`site/ai.js`・`site/ui.js` に分割しています。初回プロトタイプの自動テストは開発用アーカイブで実行済みです。
 
 ## GitHub Pagesへのデプロイ
 
@@ -48,9 +48,14 @@ python3 -m http.server 4173 --directory site
 
 ## リポジトリのファイル
 
-- `site/index.html` — CSS・ゲームロジック・CPU・画面表示を内包した単体版
-- `.github/workflows/pages.yml` — GitHub Pagesの公開ワークフロー
-- `README.md` — 操作概要と暫定ルール裁定
+- `site/index.html` — GitHub Pages公開用エントリー
+- `site/engine.js` — 牌・役・合法手・得点計算・状態遷移
+- `site/ai.js` — 簡易CPU対戦ロジック
+- `site/ui.js` — 画面表示・手札操作・2人対戦の秘匿画面
+- `site/style.css` — ゲーム盤・牌表示のスタイル
+- `site/favicon.svg` — アイコン
+- `site/standalone.html` — 単体起動できるHTML
+- `.github/workflows/pages.yml` — GitHub Pages自動デプロイ
 
 ## 注意
 

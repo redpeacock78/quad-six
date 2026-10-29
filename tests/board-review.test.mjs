@@ -38,6 +38,7 @@ function finishedMatch({ mode='cpu', opponentCount=4 }={}) {
   match.game.openingRole={name:'雑'};
   match.game.phase='finished';
   match.game.endReason='early';
+  match.game.endWinner=0;
   matchLib.settleMatchGame(match);
   return match;
 }

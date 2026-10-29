@@ -92,6 +92,7 @@ npm run build:standalone
 - `tests/round-names.test.mjs` — 東1〜東4・南1〜南4および連荘時の局名のテスト
 - `tests/round-display.test.mjs` — 盤面・対局履歴・精算画面の局名テスト
 - `tests/attachment-dedup.test.mjs` — 同じ牌の2枚付札で合法手が重複しないことと得点計算の検証
+- `tests/cpu-autoplay.test.mjs` — CPU同士の東風戦64対局で、合法手エラーや手番停止が起きないことを検証
 - `tests/scoring-v05.test.mjs` — レイズ点・早アガリ者記録・実際の連荘動作を検証
 - `tests/board-review.test.mjs` — 相手牌の秘匿表示・終局盤面レビューのテスト
 - `tests/navigation-modal.test.mjs` — GitHubリンク・タイトル遷移・モーダル枠外クリックのテスト

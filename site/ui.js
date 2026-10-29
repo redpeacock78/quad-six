@@ -1,6 +1,6 @@
 import { newGame, dispatch, roleOf, isStronger, attachmentMoves, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js';
 import { chooseAIAction } from './ai.js';
-import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner } from './match.js';
+import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner, matchRoundName } from './match.js';
 
 
 const $app = document.getElementById('app');
@@ -109,33 +109,36 @@ function phaseLabel() {
 function scoreCard(p) {
   return `<div class="score-person ${game.current===p&&game.phase!=='finished'?'active':''}"><div><div class="player-name">${p===0?'◈':'◇'} ${nameOf(p)} ${game.finalOut[p]?'· 脱落':''}</div><div class="player-detail">手札 ${game.hands[p].length}枚 / 役 ${game.scores[p].role} / 付札等 ${game.scores[p].pips}</div></div><div class="points">${totalScore(game,p)}</div></div>`;
 }
+function currentRoundName() {
+  if (!match) return '';
+  // Settlement advances the next dealer before the recap is dismissed.
+  // During final-table review, display the completed game's designation.
+  const last = match.settled ? match.history.at(-1) : null;
+  return matchRoundName(match.format, last ? last.hand : match.handNumber,
+    last ? last.honba : match.honba);
+}
 function matchHandLabel() {
   if (!match) return '';
-  const last = match.history.at(-1);
-  const hand = match.settled ? last.hand : match.handNumber;
-  const honba = match.settled ? last.honba : match.honba;
-  return match.format === 'single'
-    ? '一局戦 · 1ゲーム'
-    : `${MATCH_FORMATS[match.format].label} · ${hand}/${match.totalGames}親番 · ${honba}本場 · 通算${match.gameNumber}ゲーム`;
+  return `${MATCH_FORMATS[match.format].label} · ${currentRoundName()}${match.format==='single'?'':` · 第${match.gameNumber}ゲーム`}`;
 }
 function matchPanel() {
   if (!match) return '';
   return `<section class="panel match-panel"><div class="side-section"><div class="side-title"><h3>${matchHandLabel()}</h3><span class="small-label">親：${nameOf(match.settled?match.history.at(-1).dealer:match.dealer)} · 最初の親：${nameOf(match.initialStarter)}</span></div>
     <div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div>
     <p class="footnote">${match.format==='single'?'一局戦は連荘・本場点なし':'親の早アガリで連荘・本場＋1 · アガリ時に5×本場点'} · 得点差は持ち点に反映</p>
-    ${match.history.length?`<details class="drawer"><summary>対局履歴（${match.history.length}ゲーム）</summary><table class="ledger"><thead><tr><th>ゲーム</th><th>得点差</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${match.history.map(r=>`<tr><td>${r.game}（${r.hand}親${r.honba?`・${r.honba}本場`:``}${r.renchan?`・連荘`:``}）</td><td>${r.delta>0?'+':''}${r.delta}</td><td>${r.points[0]}</td><td>${r.points[1]}</td></tr>`).join('')}</tbody></table></details>`:''}</div></section>`;
+    ${match.history.length?`<details class="drawer"><summary>対局履歴（${match.history.length}ゲーム）</summary><table class="ledger"><thead><tr><th>ゲーム</th><th>得点差</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${match.history.map(r=>`<tr><td>${matchRoundName(match.format,r.hand,r.honba)}<small> · 第${r.game}ゲーム${r.renchan?' · 連荘':''}</small></td><td>${r.delta>0?'+':''}${r.delta}</td><td>${r.points[0]}</td><td>${r.points[1]}</td></tr>`).join('')}</tbody></table></details>`:''}</div></section>`;
 }
 function sideMarkup() {
-  const rows = game.rounds.map(r => `<tr><td>第${r.round}局</td><td>${r.role[0]+r.pips[0]+r.raise[0]}</td><td>${r.role[1]+r.pips[1]+r.raise[1]}</td></tr>`).join('');
+  const rows = game.rounds.map(r => `<tr><td>第${r.round}平場</td><td>${r.role[0]+r.pips[0]+r.raise[0]}</td><td>${r.role[1]+r.pips[1]+r.raise[1]}</td></tr>`).join('');
   const closed = game.discard.slice(-10).reverse();
   return `<aside class="side-column">${matchPanel()}
   <section class="panel"><div class="side-section"><div class="side-title"><h3>得点ボード</h3><span class="small-label">SCORE</span></div>${scoreCard(0)}${scoreCard(1)}<div class="round-lbl">※ 終局時にボーナス・残牌点を精算するよ</div></div>
   <div class="side-section"><div class="side-title"><h3>進行状況</h3></div><div class="side-stats"><div class="statbox"><div class="number">${game.stock.length}</div><div class="label">山札</div></div><div class="statbox"><div class="number">${game.discard.length}</div><div class="label">公開除外</div></div><div class="statbox"><div class="number">${game.raise}</div><div class="label">レイズ数</div></div></div>
-  <details class="drawer"><summary>局別スコアと内訳を表示</summary><table class="ledger"><thead><tr><th>局</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${rows}<tr class="total"><td>累計</td><td>${totalScore(game,0)}</td><td>${totalScore(game,1)}</td></tr></tbody></table><p class="footnote">レイズ点は最終上書き者が総取り · 親の本場点はゲーム終局時に加点</p></details>
+  <details class="drawer"><summary>局別スコアと内訳を表示</summary><table class="ledger"><thead><tr><th>平場</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${rows}<tr class="total"><td>累計</td><td>${totalScore(game,0)}</td><td>${totalScore(game,1)}</td></tr></tbody></table><p class="footnote">レイズ点は最終上書き者が総取り · 親の本場点はゲーム終局時に加点</p></details>
   </div></section>
   <section class="panel"><div class="side-section"><div class="side-title"><h3>役の早見表</h3><span class="small-label">RANKS</span></div><div class="mini-role-list"><div class="mini-role"><span>✦ 至尊</span><b>20点</b></div><div class="mini-role"><span>Ⅱ 文牌 · 同じ牌2枚</span><b>15点</b></div><div class="mini-role"><span>Ⅲ 武牌 · 指定9組</span><b>10点</b></div><div class="mini-role"><span>Ⅳ 雑 · その他</span><b>5点</b></div></div><button class="button quiet tight full" style="margin-top:14px" data-action="help">武牌9種を見る →</button></div></section>
   <section class="panel"><div class="side-section"><div class="side-title"><h3>公開除外</h3><span class="small-label">DISCARD</span></div><div class="discards ${closed.length?'':'empty'}">${closed.length ? closed.map(id=>tileDisplay(id,{small:true})).join('') : 'まだ除外された牌はないよ'}</div>${game.discard.length>10?`<details class="drawer"><summary>すべての除外牌（${game.discard.length}枚）</summary><div class="discards" style="margin:10px 0">${game.discard.map(id=>tileDisplay(id,{small:true})).join('')}</div></details>`:''}</div></section>
-  <section class="panel"><div class="side-section"><div class="side-title"><h3>対局ログ</h3></div>${game.history.slice(0,8).map(l=>`<div class="log-entry"><small>${l.round}局</small>${safe(l.text)}</div>`).join('')}</div></section>
+  <section class="panel"><div class="side-section"><div class="side-title"><h3>対局ログ</h3></div>${game.history.slice(0,8).map(l=>`<div class="log-entry"><small>第${l.round}平場</small>${safe(l.text)}</div>`).join('')}</div></section>
   </aside>`;
 }
 function gameMarkup() {
@@ -147,8 +150,8 @@ function gameMarkup() {
   const hand = show?`<div class="hand-strip">${currentHand(current) || '<div class="empty-action">手札がないよ</div>'}</div>`:`<div class="hand-privacy">次のプレイヤーが手札を確認するまで非公開</div>`;
   const ends=endsOf();
   return `<section class="game-layout"><div class="main-column">
-    ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
-    <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?'FINAL ROUND':`ROUND ${String(game.round).padStart(2,'0')}`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
+    ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · ${currentRoundName()} · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
+    <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?`${currentRoundName()} · 最終出牌`:`${currentRoundName()} · 第${game.round}平場`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
     <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>左端 <b>${ends?ends[0]:'—'}</b></span><span>通常の付札は同じ数字に接続</span><span>右端 <b>${ends?ends[1]:'—'}</b></span></div></section>
     <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / 2`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
    </div>${sideMarkup()}</section>`;
@@ -182,12 +185,12 @@ function endMarkup() {
   const winner = isComplete ? matchWinner(match) : record?.winner;
   const itemRows = ['role','pips','raise','early','tableHonba','lastDraw','remaining'];
   const labels = {role:'役点',pips:'ピップ点',raise:'レイズ点',early:'早アガリ',tableHonba:'本場点',lastDraw:'山枯らし減点',remaining:'残牌減点'};
-  return `<div class="overlay" data-action="dismiss-results"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">${isComplete?'MATCH SET · FINAL STANDINGS':'GAME SET · SCORE SETTLEMENT'}</span><h2>${isComplete?(winner===null?'対局終了 · 引き分け！':`${nameOf(winner)}の総合勝利！`):`第${match.gameNumber}ゲーム終了`}</h2>
-  <p>${game.endReason==='early'?'早アガリで終局':'山札が尽きて最終出牌終了'} · ${match.format==='single'?'一局戦':`${record.hand}/${match.totalGames}親番・${record.honba}本場`}${record.renchan?' · 親連荘！':''} · ${isComplete?'対局終了':'次ゲームへ'}</p>
+  return `<div class="overlay" data-action="dismiss-results"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">${isComplete?'MATCH SET · FINAL STANDINGS':'GAME SET · SCORE SETTLEMENT'}</span><h2>${isComplete?(winner===null?'対局終了 · 引き分け！':`${nameOf(winner)}の総合勝利！`):`${currentRoundName()} 終了`}</h2>
+  <p>${game.endReason==='early'?'早アガリで終局':'山札が尽きて最終出牌終了'} · ${match.format==='single'?'一局戦':matchRoundName(match.format,record.hand,record.honba)}${record.renchan?' · 親連荘！':''} · ${isComplete?'対局終了':'次ゲームへ'}</p>
   <div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div><div class="review-entry"><button class="button primary" data-action="inspect-board">◇ 終局時の盤面を見る →</button></div>
   <table class="mini-table"><tr><th>このゲームの内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>ゲーム得点</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table>
   <div class="settlement"><span>得点差 ${record?.delta>0?'+':''}${record?.delta??0}点 → 持ち点に反映</span><div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div></div>
-  ${isComplete?`<h3>総合成績</h3><table class="mini-table"><tr><th>ゲーム</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th><th>得点差</th></tr>${match.history.map(r=>`<tr><td>${r.game}（${r.hand}親${r.honba?`・${r.honba}本場`:''}）</td><td>${r.scores[0]}</td><td>${r.scores[1]}</td><td>${r.delta>0?'+':''}${r.delta}</td></tr>`).join('')}<tr><th>最終持ち点</th><th>${match.points[0]}</th><th>${match.points[1]}</th><th>合計500</th></tr></table>`:''}
+  ${isComplete?`<h3>総合成績</h3><table class="mini-table"><tr><th>ゲーム</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th><th>得点差</th></tr>${match.history.map(r=>`<tr><td>${matchRoundName(match.format,r.hand,r.honba)}<small> · 第${r.game}ゲーム</small></td><td>${r.scores[0]}</td><td>${r.scores[1]}</td><td>${r.delta>0?'+':''}${r.delta}</td></tr>`).join('')}<tr><th>最終持ち点</th><th>${match.points[0]}</th><th>${match.points[1]}</th><th>合計500</th></tr></table>`:''}
   <div class="modal-actions">${isComplete?`<button class="button primary large" data-action="play-again">同じ形式でもう一戦！</button>`:`<button class="button primary large" data-action="next-game">次のゲームへ →</button>`}<button class="button quiet" data-action="back-home">タイトルへ</button></div></div></div>`;
 }
 function handoffMarkup() {

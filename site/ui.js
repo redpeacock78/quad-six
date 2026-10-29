@@ -1,4 +1,4 @@
-import { newGame, dispatch, roleOf, isStronger, attachmentMoves, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js';
+import { newGame, dispatch, roleOf, isStronger, attachmentMoves, boardPorts, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js';
 import { chooseAIAction } from './ai.js';
 import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner, matchRoundName } from './match.js';
 
@@ -52,8 +52,11 @@ function currentHand(player = game.current) {
   }).join('');
 }
 function formatMove(move) {
-  if (move.special) return '至尊・両側接続';
-  return move.side === 'left' ? '左端' : '右端';
+  const ports=boardPorts(game.board);
+  const index=ports.findIndex(port=>port.key===move.portKey);
+  const second=ports.findIndex(port=>port.key===move.portKey2);
+  if(move.special)return `至尊・端点${index+1}と${second+1}`;
+  return `端点${index+1}（${ports[index]?.pip ?? '?'}）`;
 }
 function activeAttachmentMove(moves) {
   return moves.find(move => move.key === selectedMoveKey) || (moves.length === 1 ? moves[0] : null);
@@ -81,7 +84,7 @@ function actionPanel() {
     const moves = attachmentMoves(game, selected);
     const activeMove = activeAttachmentMove(moves);
     return `<div class="action-head"><strong>付札を出す</strong><span class="small-label">ドミノ</span></div>
-      <p class="help-text">① 手札から1〜2枚選ぶ → ② 接続先を選ぶ → ③「付札を場に出す」で確定${game.final?' · 最終局のパスは即脱落':''}</p>
+      <p class="help-text">① 手札から1〜2枚選ぶ → ② 盤面の端点番号で接続先を選ぶ → ③「付札を場に出す」で確定${game.final?' · 最終局のパスは即脱落':''}</p>
       ${movesMarkup(moves, activeMove)}
       <div class="action-buttons attachment-actions"><button class="button primary" data-action="attach" ${activeMove?'':'disabled'}>付札を場に出す ↗</button><button class="button quiet" data-action="passAttach">${game.final?'パスして脱落':'パス · 1枚引く'}</button>${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
@@ -106,7 +109,106 @@ function opponentHandMarkup(player) {
     <div class="opponent-tiles" aria-hidden="true">${count ? Array.from({length:count},()=>dominoMarkup(0,0,{small:true,back:true})).join('') : '<span class="opponent-empty">手牌なし</span>'}</div>
   </section>`;
 }
+
+/** Tree layout: the two opening tiles remain connected at the center.
+ * Descendants grow outward on their own root side, with each double's
+ * three free arms displayed in separate vertical lanes.
+ */
+function branchingBoardMarkup() {
+  const board=game.board,items=board.items,ports=boardPorts(board);
+  const byParent=new Map(),portByOwner=new Map();
+  for(const item of items.slice(2)){
+    if(!byParent.has(item.parent))byParent.set(item.parent,[]);
+    byParent.get(item.parent).push(item);
+  }
+  for(const p of ports){
+    if(!portByOwner.has(p.owner))portByOwner.set(p.owner,[]);
+    portByOwner.get(p.owner).push(p);
+  }
+  const gapX=122,gapY=95;
+  const positions=new Map(),portPositions=new Map(),links=[];
+  let maxLeft=0,maxRight=0;
+  const layout=(root,side)=>{
+    let row=0,maxDepth=0;
+    const walk=(item,depth)=>{
+      maxDepth=Math.max(maxDepth,depth);
+      const kids=(byParent.get(item.id)||[]).map(v=>({slot:v.slot||0,node:v,kind:'node'}));
+      const ends=(portByOwner.get(item.id)||[]).map(v=>({slot:v.slot||0,node:v,kind:'port'}));
+      const ordered=[...kids,...ends].sort((a,b)=>(a.slot===1?-1:a.slot===2?1:0)-(b.slot===1?-1:b.slot===2?1:0));
+      const childrenY=[];
+      for(const part of ordered){
+        if(part.kind==='node'){
+          const y=walk(part.node,depth+1);
+          childrenY.push(y);
+        }else{
+          const y=row++*gapY;
+          portPositions.set(part.node.key,{depth:depth+1,y,side});
+          childrenY.push(y);
+        }
+      }
+      const y=childrenY.length?(childrenY[0]+childrenY[childrenY.length-1])/2:row++*gapY;
+      positions.set(item.id,{depth,y,side,item});
+      return y;
+    };
+    walk(root,0);
+    const rootY=positions.get(root.id).y;
+    for(const pos of positions.values())if(pos.side===side)pos.y-=rootY;
+    for(const pos of portPositions.values())if(pos.side===side)pos.y-=rootY;
+    if(side==='left')maxLeft=maxDepth;
+    else maxRight=maxDepth;
+  };
+  layout(items[0],'left');
+  layout(items[1],'right');
+  const pad=90,rootLeftX=pad+maxLeft*gapX,rootRightX=rootLeftX+gapX;
+  const px=pos=>(pos.side==='left'?rootLeftX-pos.depth*gapX:rootRightX+pos.depth*gapX);
+  const yList=[...positions.values(),...portPositions.values()].map(p=>p.y);
+  const minY=Math.min(...yList,0),maxY=Math.max(...yList,0),shiftY=pad-minY;
+  const width=rootRightX+maxRight*gapX+pad;
+  const height=Math.max(205,maxY-minY+pad*2);
+  const line=(x1,y1,x2,y2)=>`<path d="M${x1} ${y1} H${(x1+x2)/2} V${y2} H${x2}" fill="none" stroke="#9abb97" stroke-width="3" stroke-linecap="round" opacity=".8"/>`;
+  // Physical edges follow the recorded parent references, not screen order.
+  links.push(line(rootLeftX,shiftY,rootRightX,shiftY));
+  for(const item of items.slice(2)){
+    const from=positions.get(item.parent),to=positions.get(item.id);
+    if(from&&to)links.push(line(px(from),from.y+shiftY,px(to),to.y+shiftY));
+  }
+  const portsMarkup=ports.map((port,i)=>{
+    const pos=portPositions.get(port.key);
+    const base=positions.get(port.owner);
+    if(!pos||!base)return '';
+    const x=px(pos),y=pos.y+shiftY;
+    links.push(line(px(base),base.y+shiftY,x,y));
+    return `<g><circle cx="${x}" cy="${y}" r="24" fill="#1a4a3c" stroke="#e2bc76" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="${x}" y="${y-3}" text-anchor="middle" font-size="15" font-weight="bold" fill="#f9df9e">${port.pip}</text>
+      <text x="${x}" y="${y+14}" text-anchor="middle" font-size="10" fill="#f5e4bf">端点${i+1}</text></g>`;
+  }).join('');
+  const dominos=items.map((item,index)=>{
+    const pos=positions.get(item.id);
+    if(!pos)return '';
+    const x=px(pos),y=pos.y+shiftY;
+    const isDouble=item.a===item.b,vertical=isDouble&&index>=2;
+    const w=vertical?46:80,h=vertical?72:46;
+    const a=pos.side==='left'&&index>=2?item.b:item.a;
+    const b=pos.side==='left'&&index>=2?item.a:item.b;
+    return `<g transform="translate(${x} ${y})" aria-label="${a}｜${b}">
+      <rect x="${-w/2}" y="${-h/2}" width="${w}" height="${h}" rx="7"
+        fill="${isDouble?'#f5dca6':'#f0e9d9'}" stroke="${isDouble?'#d3a85b':'#ad9872'}" stroke-width="2"/>
+      ${vertical?
+        `<line x1="${-w/2+3}" y1="0" x2="${w/2-3}" y2="0" stroke="#857968" stroke-width="1.5"/>
+          <text x="0" y="-12" text-anchor="middle" font-size="21" fill="#17342d">${a}</text>
+          <text x="0" y="27" text-anchor="middle" font-size="21" fill="#17342d">${b}</text>`:
+        `<line x1="0" y1="${-h/2+3}" x2="0" y2="${h/2-3}" stroke="#857968" stroke-width="1.5"/>
+          <text x="-20" y="7" text-anchor="middle" font-size="21" fill="#17342d">${a}</text>
+          <text x="20" y="7" text-anchor="middle" font-size="21" fill="#17342d">${b}</text>`}
+      </g>`;
+  }).join('');
+  return `<div class="board-graph" role="img" aria-label="分岐するドミノ盤面。開放端は${ports.length}か所">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" aria-hidden="true">
+      ${links.join('')}${dominos}${portsMarkup}
+    </svg></div>`;
+}
 function boardMarkup() {
+  if (game.board?.ports) return branchingBoardMarkup();
   if (!game.board) return `<div class="board-empty"><div class="symbol">◇</div><strong>${game.phase==='finished'?'終局時の盤面は空です':'盤面はまだ空だよ'}</strong><small>${game.phase==='finished'?'このゲームで最後に場が流れた状態です':'平場で最初の役を置いて始めよう'}</small></div>`;
   const items = game.board.items, split = game.board.splitIndex;
   const leftItems = items.slice(0,split), rightItems=items.slice(split);
@@ -161,11 +263,11 @@ function gameMarkup() {
   const finished=game.phase==='finished';
   const show=finished || (!handoff && (human || game.mode==='cpu'));
   const hand = show?`<div class="hand-strip">${currentHand(current) || '<div class="empty-action">手札がないよ</div>'}</div>`:`<div class="hand-privacy">次のプレイヤーが手札を確認するまで非公開</div>`;
-  const ends=endsOf();
+  const ports=boardPorts(game.board);
   return `<section class="game-layout"><div class="main-column">
     ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · ${currentRoundName()} · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
     <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?`${currentRoundName()} · 最終出牌`:`${currentRoundName()} · 第${game.round}平場`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
-    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>左端 <b>${ends?ends[0]:'—'}</b></span><span>通常の付札は同じ数字に接続</span><span>右端 <b>${ends?ends[1]:'—'}</b></span></div></section>
+    <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>開放端 <b>${ports.length}か所</b></span><span>同じ数字の枝に接続 · 端点番号で選択</span><span>数字 <b>${ports.map(p=>p.pip).join('・')||'—'}</b></span></div></section>
     <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / ${game.phase==='adjustment'?Math.min(game.hands[current].length,game.stock.length):2}`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
    </div>${sideMarkup()}</section>`;
 }
@@ -184,7 +286,7 @@ function helpMarkup() {
   <table class="mini-table"><tr><th>階級</th><th>役</th><th>役点</th></tr><tr><td>最高</td><td>至尊 [6｜6] + [0｜0]</td><td>20</td></tr><tr><td>上</td><td>文牌：同じ牌2枚</td><td>15</td></tr><tr><td>中</td><td>武牌：次の指定9組</td><td>10</td></tr><tr><td>下</td><td>雑：その他の2枚</td><td>5</td></tr></table>
   <h3>武牌9種の役表</h3><table class="mini-table"><tr><th>役</th><th>2枚組</th></tr>${examples}</table>
   <p class="footnote">文牌は原則ピップ合計で比較するよ · ただし [0｜0] の対子だけは [6｜6] の対子に勝つ特例があるよ · 雑同士のレイズは不可としているよ</p>
-  <h3>② 付札：ドミノ</h3><p>1手で1枚か2枚を選んで、盤面の左右の開放端に同じ数字を繋ぐよ · 2枚なら同じ方向へ連続接続するよ · ただし至尊の2枚だけは、開放端が0と6のときに両端へ同時に配置できるよ</p>
+  <h3>② 付札：ドミノ</h3><p>最初の付札で左右どちらかの起点を選ぶよ · その後の通常付札は選んだ側の枝だけに接続（反対側の起点は閉じる） · 1手で1枚か2枚を同じ枝に連続接続するよ · ゾロ目のダブル牌を置くと縦置きになり、接続した方向以外の3方向が開放されるよ · 枝は全部独立して伸ばせる · 至尊 [0｜0]＋[6｜6] だけは例外として数字0と6の2つの開放端へ同時に付札できるよ</p>
   <h3>③ パスと局の終了</h3><p>通常の付札でパスすると山札から1枚引くよ · 両者が連続パスしたら場の牌をすべて公開除外し、第N平場とレイズ数をリセットするよ（麻雀式の東N局・南N局とは別） · 局間は1枚ドロー / 手札から任意枚数の公開交換 / 何もしない、から各自1回選べるよ · 交換は手札全部までOK（山札の残数が上限） · 除外した牌は山札に戻さず同数を補充するよ</p>
   <h3>④ 終局と得点</h3><p>手札0枚なら早アガリで即終了、山札0枚なら最後の付札を続けて精算するよ · 最終付札中のパスは脱落になるよ</p>
   <table class="mini-table"><tr><th>項目</th><th>計算</th></tr><tr><td>役とピップ</td><td>出したときに加算</td></tr><tr><td>レイズ点</td><td>平場のレイズ回数×3点を最終レイズ者へ</td></tr><tr><td>本場点</td><td>東風・半荘のみ。早アガリした側に5×現在の本場数</td></tr><tr><td>早アガリ</td><td>+15点</td></tr><tr><td>山を最後に引いた人</td><td>−15点（強制補充を除く）</td></tr><tr><td>残った手札</td><td>ピップ合計÷2、切り上げで減点</td></tr></table>

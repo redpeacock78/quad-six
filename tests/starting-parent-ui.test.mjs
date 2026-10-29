@@ -41,7 +41,7 @@ test('CPU plays the opening bid automatically when drawn as the first parent', a
 test('second game alternates the first parent after CPU starts', () => {
   const m=matchLib.createMatch({format:'tonpu',startingPlayer:1,seed:21});
   assert.equal(m.initialStarter,1);
-  m.game.phase='finished'; m.game.endReason='early';
+  m.game.phase='finished'; m.game.endReason='early'; m.game.endWinner=0;
   matchLib.settleMatchGame(m);
   matchLib.nextMatchGame(m,22);
   assert.equal(m.game.current,0);

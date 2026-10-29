@@ -111,3 +111,45 @@ test('all attached physical tile IDs are unique and pip accounting stays exact',
   assert.equal(new Set(ids).size,ids.length);
   assert.ok(Number.isFinite(totalScore(g,0)));
 });
+
+test('Supreme opening keeps both root ends after a regular attachment',()=>{
+  const {g,find,play}=setup({left:'6-6',right:'0-0'});
+  assert.equal(g.openingRole.tier,'supreme');
+  assert.equal(g.board.chosenSide,'supreme','both sides must remain active from the opening');
+  assert.deepEqual(boardPorts(g.board).map(p=>p.pip),[6,0]);
+
+  const left=play(['5-6'],m=>m.portKey==='root-left');
+  assert.equal(left.side,'left');
+  assert.ok(boardPorts(g.board).some(p=>p.key==='root-right'&&p.pip===0),
+    'a normal attachment to the left must NOT seal the right opening');
+  assert.equal(g.board.chosenSide,'supreme');
+  const right=play(['0-3'],m=>m.portKey==='root-right');
+  assert.equal(right.side,'right');
+  assert.ok(boardPorts(g.board).some(p=>p.pip===5&&p.side==='left'));
+  assert.ok(boardPorts(g.board).some(p=>p.pip===3&&p.side==='right'));
+  assert.equal(boardPorts(g.board).filter(p=>p.root).length,0);
+  assert.equal(g.board.items.length,4);
+});
+
+test('Supreme opening also allows right-first then left, even with a spinner',()=>{
+  const {g,play}=setup({left:'0-0',right:'6-6'});
+  const right=play(['5-6'],m=>m.portKey==='root-right');
+  assert.equal(right.side,'right');
+  assert.ok(boardPorts(g.board).some(p=>p.key==='root-left'&&p.pip===0));
+  const left=play(['0-0'],m=>m.portKey==='root-left');
+  assert.equal(left.side,'left');
+  assert.equal(g.board.chosenSide,'supreme');
+  assert.equal(boardPorts(g.board).filter(p=>p.side==='left').length,3);
+  assert.equal(boardPorts(g.board).filter(p=>p.side==='right').length,1);
+});
+
+test('a non-Supreme double pair remains restricted to the first chosen side',()=>{
+  const {g,find,play}=setup({left:'0-0',right:'0-0'});
+  assert.equal(g.openingRole.tier,'civil');
+  assert.equal(g.board.chosenSide,null);
+  play(['0-3'],m=>m.portKey==='root-left');
+  assert.equal(g.board.chosenSide,'left');
+  assert.ok(!boardPorts(g.board).some(p=>p.key==='root-right'));
+  g.current=0;
+  assert.equal(attachmentMoves(g,[find('0-5')[0]]).filter(m=>m.portKey==='root-right').length,0);
+});

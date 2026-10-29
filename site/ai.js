@@ -47,7 +47,10 @@ export function chooseAIAction(game) {
         .filter(id => !['0-0', '6-6'].includes(tileKey(getTile(game, id))));
       if (candidates.length) {
         candidates.sort((a, b) => tilePips(getTile(game, b)) - tilePips(getTile(game, a)));
-        return { type: 'adjust', choice: 'exchange', id: candidates[0] };
+        // Discard some isolated high-pip tiles, preserving duplicate pairs and
+        // the supreme components. Never request more tiles than remain in stock.
+        const count = Math.min(candidates.length, game.stock.length, 1 + Math.floor(Math.random() * 3));
+        if (count > 0) return { type: 'adjust', choice: 'exchange', ids: candidates.slice(0, count) };
       }
     }
     return { type: 'adjust', choice: 'none' };

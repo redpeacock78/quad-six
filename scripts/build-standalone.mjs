@@ -14,7 +14,7 @@ for (const name of ['engine', 'ai', 'match', 'ui']) {
 
 html = html.replace(/\s*<link rel="icon"[^>]*>/, '')
   .replace(/\s*<link rel="stylesheet"[^>]*>/, `\n<style>\n${css}\n</style>`)
-  .replace(/<script type="module" src="\.\/ui\.js"><\/script>/,
+  .replace(/<script type="module" src="\.\/ui\.js(?:\?[^"]*)?"><\/script>/,
     `<script type="module">\n${modules.join('\n')}\n</script>`);
 
 if (!html.includes('function createMatch(') || !html.includes('function advanceGame(')) {

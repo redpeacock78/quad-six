@@ -47,3 +47,15 @@
   .header-actions{width:100%;justify-content:flex-end;gap:6px;flex-wrap:wrap}
   .subfoot{flex-wrap:wrap;line-height:1.6}
 }
+
+/* Mahjong-style round designation, prominent and legible on phones */
+.match-panel .match-round-heading{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.match-panel .match-round-name{font-size:20px;line-height:1.25;letter-spacing:.035em;color:var(--gold2)}
+.match-panel .match-round-heading .small-label{font-size:11px;color:var(--muted);line-height:1.5;letter-spacing:.01em}
+.match-history-round strong{display:block;font-size:12px;font-weight:800;white-space:nowrap;color:var(--text);letter-spacing:0}
+.match-history-round small{display:block;margin-top:3px;font-size:10px;color:var(--muted);white-space:nowrap}
+@media(max-width:670px){
+ .match-panel .match-round-name{font-size:21px}
+ .match-panel .ledger{font-size:11px}
+ .match-history-round strong{font-size:12px}
+}

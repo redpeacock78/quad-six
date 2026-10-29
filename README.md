@@ -4,35 +4,32 @@
 
 **対応**: CPU戦（簡易AI）、同一端末での2人対戦（手札の受け渡し画面あり）、9枚配牌、平場・上書き・武牌9種・至尊・通常/最終付札・パス・公開除外・補充・交換・山枯らし・得点計算。
 
-## ローカル起動
+## 遊ぶ
 
-Node.js 20以降があれば依存パッケージのインストールは不要です。
+公開URL（Pages有効化・デプロイ成功後）: https://redpeacock78.github.io/quad-six/
+
+- CPU対戦：簡易AIと対戦。
+- 同一端末2人対戦：手札の受け渡し画面つき。
+- ルールは画面内の「遊び方」から確認可能。
+
+## 開発・起動
+
+このリポジトリには、CSS・ルールエンジン・UIを1ファイルに組み込んだ **依存なしのブラウザ版** を配置しています。
+
+`site/index.html` をブラウザで直接開くだけで遊べます。ローカルサーバーで確認する場合：
 
 ```sh
-npm run dev
-# http://localhost:4173
+python3 -m http.server 4173 --directory site
+# http://localhost:4173/
 ```
 
-別の方法：`python3 -m http.server 4173 --directory site`
-
-```sh
-npm test
-```
-
-## 1ファイルで遊ぶ
-
-`site/standalone.html` はCSSとJavaScriptを埋め込んだ単体HTMLです。ダウンロードしてブラウザで開くだけで試せます。`npm run build:standalone` で再生成できます。
+分割されたエンジン・UI・テストを含む開発用アーカイブは、別途配布版に含まれています。GitHub 上の公開用ファイルは単体HTMLです。
 
 ## GitHub Pagesへのデプロイ
 
-このフォルダ全体を新しいGitHubリポジトリにpushします。`site/`が公開対象です。ルート配置でもサブパス配置でも、**相対パス**で動作します。
+`master` に push すると `.github/workflows/pages.yml` が `site/` を自動公開します。
 
-1. GitHubでリポジトリを作成し、ソースを `master` ブランチへpush。
-2. リポジトリの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選択。
-3. `.github/workflows/pages.yml` が自動実行され、`site/` 内の静的ファイルがデプロイされます。
-4. Actionsの `Publish Quad6 to GitHub Pages` 実行結果、または Pages 設定画面のURLから開きます。
-
-公開サイトのURLは一般に `https://<user>.github.io/<repository>/` となります。独自ドメインを使う場合は別途Pages側で設定してください。
+**初回のみ** リポジトリの **Settings → Pages → Build and deployment → Source** を **GitHub Actions** に設定してください。以後のコミットは自動で再デプロイします。
 
 ## ルールの実装上の暫定裁定
 
@@ -49,21 +46,11 @@ npm test
 - **先攻**: 局ごとに交代。
 - **手札交換**: 局間に1人1アクション。公開除外の牌は再使用しません。
 
-## ファイル構成
+## リポジトリのファイル
 
-```text
-site/index.html      エントリー
-site/standalone.html 単体で動作するHTML
-site/style.css       盤面・牌のCSS
-site/ui.js           ブラウザ表示 / 入力 / 2人対戦の手札秘匿
-site/engine.js       ルールエンジン（DOM非依存）
-site/ai.js           CPUの簡易ヒューリスティクス
-site/favicon.svg     自作アイコン
-scripts/dev-server.mjs  依存なし開発サーバー
-scripts/build-standalone.mjs  1ファイル版を生成
-tests/engine.test.mjs  ルールのテスト
-.github/workflows/pages.yml  GitHub Pages自動公開
-```
+- `site/index.html` — CSS・ゲームロジック・CPU・画面表示を内包した単体版
+- `.github/workflows/pages.yml` — GitHub Pagesの公開ワークフロー
+- `README.md` — 操作概要と暫定ルール裁定
 
 ## 注意
 

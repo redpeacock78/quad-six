@@ -378,13 +378,16 @@ export function dispatch(game, action) {
       assert(!game.adjustDone[p], '調整は各自1回です');
       assert(['none', 'draw', 'exchange'].includes(action.choice), '無効な調整方法');
       if (action.choice === 'exchange') {
-        const id = action.id;
-        assert(game.hands[p].includes(id), '交換する牌を選択してください');
-        assert(game.stock.length > 0, '山札がありません');
-        removeHand(game, p, [id]);
-        game.discard.push(id);
-        draw(game, p);
-        record(game, `P${p + 1} 1枚公開交換`, p);
+        const ids = action.ids ?? (action.id == null ? [] : [action.id]);
+        assert(Array.isArray(ids) && ids.length >= 1, '交換する牌を1枚以上選択してください');
+        assert(new Set(ids).size === ids.length && ids.every(id => game.hands[p].includes(id)), '交換牌に重複または手札外の牌があります');
+        // Validate the entire exchange before removing anything. Exchanged tiles
+        // go straight to the public discard, never back into the draw pile.
+        assert(ids.length <= game.stock.length, `山札は残り${game.stock.length}枚です。交換枚数を減らしてください`);
+        removeHand(game, p, ids);
+        game.discard.push(...ids);
+        for (let k = 0; k < ids.length; k++) draw(game, p);
+        record(game, `P${p + 1} ${ids.length}枚公開交換`, p);
       } else if (action.choice === 'draw') {
         assert(game.stock.length > 0, '山札がありません');
         draw(game, p);

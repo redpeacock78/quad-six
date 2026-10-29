@@ -29,7 +29,7 @@ test('format selection, local handoff and human opening can be rendered', async 
   click('open');
   assert.match(app.innerHTML, /PASS THE DEVICE/);
   click('reveal');
-  assert.match(app.innerHTML, /上書き/);
+  assert.match(app.innerHTML, /レイズ/);
   click('passOpen');
   assert.match(app.innerHTML, /付札/);
   click('help');

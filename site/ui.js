@@ -16,6 +16,8 @@ let inspectFinalBoard = false;
 let busy = false;
 let toastMessage = '';
 let toastTimer = null;
+const REPOSITORY_URL = 'https://github.com/redpeacock78/quad-six';
+const GITHUB_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5a11.5 11.5 0 0 0-3.637 22.41c.575.107.787-.25.787-.555 0-.274-.01-1-.016-1.963-3.201.696-3.877-1.542-3.877-1.542-.524-1.33-1.28-1.685-1.28-1.685-1.047-.717.079-.702.079-.702 1.16.081 1.77 1.19 1.77 1.19 1.029 1.763 2.7 1.254 3.358.96.105-.745.403-1.254.733-1.542-2.556-.29-5.24-1.278-5.24-5.686 0-1.256.45-2.283 1.187-3.089-.12-.291-.514-1.461.113-3.045 0 0 .967-.31 3.165 1.18a11.016 11.016 0 0 1 5.762 0c2.197-1.49 3.163-1.18 3.163-1.18.629 1.584.234 2.754.116 3.045.74.806 1.185 1.833 1.185 3.089 0 4.42-2.687 5.392-5.253 5.677.415.36.784 1.072.784 2.161 0 1.561-.014 2.82-.014 3.204 0 .307.21.667.795.553A11.503 11.503 0 0 0 12 .5Z"/></svg>';
 const MODE_LABELS = { cpu: ['あなた', 'CPU'], local: ['プレイヤー1', 'プレイヤー2'] };
 const PIPS = {
   0: [], 1: [[2,2]], 2: [[1,1],[3,3]], 3: [[1,1],[2,2],[3,3]],
@@ -143,7 +145,7 @@ function gameMarkup() {
    </div>${sideMarkup()}</section>`;
 }
 function headerMarkup() {
-  return `<header class="masthead"><div class="brand"><div class="brand-symbol">賽</div><div><div class="brand-text">賽棋 <span style="font-size:13px;color:var(--gold);letter-spacing:.05em">QUAD6</span></div><div class="brand-sub">THE DOMINO STRATEGY GAME</div></div></div><div class="header-actions">${game?`<span class="pill">${MATCH_FORMATS[match.format].label} · ${game.mode==='cpu'?'VS CPU':'LOCAL 2P'}</span>`:''}<button class="button quiet tight" data-action="help">ルール</button>${game?'<button class="button tight" data-action="restart">新しい対局</button>':''}</div></header>`;
+  return `<header class="masthead"><button type="button" class="brand brand-home" data-action="go-home" title="タイトル画面へ戻る" aria-label="賽棋 Quad6 — タイトル画面へ戻る"><div class="brand-symbol">賽</div><div><div class="brand-text">賽棋 <span style="font-size:13px;color:var(--gold);letter-spacing:.05em">QUAD6</span></div><div class="brand-sub">THE DOMINO STRATEGY GAME</div></div></button><div class="header-actions">${game?`<span class="pill">${MATCH_FORMATS[match.format].label} · ${game.mode==='cpu'?'VS CPU':'LOCAL 2P'}</span>`:''}<a class="button quiet tight github-link" href="${REPOSITORY_URL}" target="_blank" rel="noopener noreferrer" title="GitHubリポジトリを開く" aria-label="GitHubリポジトリを新しいタブで開く">${GITHUB_ICON}<span>GitHub</span></a><button class="button quiet tight" data-action="help">ルール</button>${game?'<button class="button tight" data-action="restart">新しい対局</button>':''}</div></header>`;
 }
 function introDomino(a,b,extra='') { return `<div class="intro-domino" ${extra}>${dominoMarkup(a,b,{large:true})}</div>`; }
 function homeMarkup(){
@@ -151,7 +153,7 @@ function homeMarkup(){
 }
 function helpMarkup() {
   const examples = MARTIAL.map(([name, a, b]) => `<tr><td>${name}</td><td>[${a.split('-').join('｜')}] + [${b.split('-').join('｜')}]</td></tr>`).join('');
-  return `<div class="overlay" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-label="ルールブック"><span class="eyebrow">HOW TO PLAY · VER 0.3</span><h2>賽棋のあそびかた</h2><p>2人に9枚ずつ配ってスタート · 役を作って場に出し、その後は数字を繋ぐ · 手札をなくすか山札が尽きたら精算するよ</p>
+  return `<div class="overlay" role="presentation" data-action="dismiss-help"><div class="modal" role="dialog" aria-modal="true" aria-label="ルールブック"><span class="eyebrow">HOW TO PLAY · VER 0.3</span><h2>賽棋のあそびかた</h2><p>2人に9枚ずつ配ってスタート · 役を作って場に出し、その後は数字を繋ぐ · 手札をなくすか山札が尽きたら精算するよ</p>
   <h3>対局形式と持ち点</h3><p>一局戦＝1ゲーム、東風戦＝4ゲーム、半荘戦＝8ゲーム。各250点から開始し、各ゲーム終了時に（自分の得点－相手の得点）の差を持ち点として移動するよ。ゲームごとに56枚を混ぜ直し、先手を交代するよ。全ゲーム終了後の持ち点が高い方の勝ち。飛び終了はなしだよ。</p>
   <h3>① 平場：天九</h3><p>先攻が2枚で役を出し、相手はより強い役で上書きできるよ · 上書きされた牌は公開除外されるけど、得点は残る · 上書きが終わったら最後の役を起点に付札へ進むよ · 本場は最後の上書き者が総取りだよ</p>
   <table class="mini-table"><tr><th>階級</th><th>役</th><th>役点</th></tr><tr><td>最高</td><td>至尊 [6｜6] + [0｜0]</td><td>20</td></tr><tr><td>上</td><td>文牌：同じ牌2枚</td><td>15</td></tr><tr><td>中</td><td>武牌：次の指定9組</td><td>10</td></tr><tr><td>下</td><td>雑：その他の2枚</td><td>5</td></tr></table>
@@ -171,7 +173,7 @@ function endMarkup() {
   const winner = isComplete ? matchWinner(match) : record?.winner;
   const itemRows = ['role','pips','honba','early','lastDraw','remaining'];
   const labels = {role:'役点',pips:'ピップ点',honba:'本場点',early:'早アガリ',lastDraw:'山枯らし減点',remaining:'残牌減点'};
-  return `<div class="overlay"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">${isComplete?'MATCH SET · FINAL STANDINGS':'GAME SET · SCORE SETTLEMENT'}</span><h2>${isComplete?(winner===null?'対局終了 · 引き分け！':`${nameOf(winner)}の総合勝利！`):`第${match.gameNumber}ゲーム終了`}</h2>
+  return `<div class="overlay" data-action="dismiss-results"><div class="modal" role="dialog" aria-modal="true"><span class="eyebrow">${isComplete?'MATCH SET · FINAL STANDINGS':'GAME SET · SCORE SETTLEMENT'}</span><h2>${isComplete?(winner===null?'対局終了 · 引き分け！':`${nameOf(winner)}の総合勝利！`):`第${match.gameNumber}ゲーム終了`}</h2>
   <p>${game.endReason==='early'?'早アガリで終局':'山札が尽きて最終出牌終了'} · ${isComplete?`${MATCH_FORMATS[match.format].label}の全${match.totalGames}ゲーム終了`:`残り${match.totalGames-match.gameNumber}ゲーム`}</p>
   <div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div><div class="review-entry"><button class="button primary" data-action="inspect-board">◇ 終局時の盤面を見る →</button></div>
   <table class="mini-table"><tr><th>このゲームの内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>ゲーム得点</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table>
@@ -183,7 +185,7 @@ function handoffMarkup() {
   return `<div class="overlay"><div class="modal privacy-view" role="dialog" aria-modal="true"><div class="symbol">◇</div><span class="eyebrow">PASS THE DEVICE</span><div class="title">${nameOf(game.current)}の番だよ</div><p>相手に手札が見えないよう端末を渡してね</p><div class="modal-actions" style="justify-content:center"><button class="button primary large" data-action="reveal">手札を確認して始める</button></div></div></div>`;
 }
 function render() {
-  $app.innerHTML = `<div class="app-shell">${headerMarkup()}${game ? gameMarkup():homeMarkup()}<footer class="subfoot"><span>© Quad6 / 賽棋 · 2人用試遊版 · 無料 · インストール不要</span><span>天九の役 × ドミノの接続 × 累積得点</span></footer></div>${helpOpen?helpMarkup():''}${game&&game.phase==='finished'&&!helpOpen&&!inspectFinalBoard?endMarkup():''}${game&&handoff&&game.phase!=='finished'&&!helpOpen?handoffMarkup():''}${toastMessage?`<div class="toast" role="status">${safe(toastMessage)}</div>`:''}`;
+  $app.innerHTML = `<div class="app-shell">${headerMarkup()}${game ? gameMarkup():homeMarkup()}<footer class="subfoot"><span>© Quad6 / 賽棋 · 2人用試遊版 · 無料 · インストール不要</span><span>天九の役 × ドミノの接続 × 累積得点 · <a class="source-link" href="${REPOSITORY_URL}" target="_blank" rel="noopener noreferrer">GitHubでソースを見る</a></span></footer></div>${helpOpen?helpMarkup():''}${game&&game.phase==='finished'&&!helpOpen&&!inspectFinalBoard?endMarkup():''}${game&&handoff&&game.phase!=='finished'&&!helpOpen?handoffMarkup():''}${toastMessage?`<div class="toast" role="status">${safe(toastMessage)}</div>`:''}`;
 }
 function notify(message) {
   toastMessage = message;
@@ -192,6 +194,28 @@ function notify(message) {
   render();
 }
 function resetTurnSelection() { selected = []; flipped = {}; }
+function goHome(confirmExit = true) {
+  if (confirmExit && game && game.phase !== 'finished' && !window.confirm('現在の対局を終了してタイトルへ戻る？ 進行状況は失われます。')) return;
+  clearTimeout(cpuTimer);
+  clearTimeout(toastTimer);
+  cpuTimer = null;
+  game = null;
+  match = null;
+  busy = false;
+  handoff = false;
+  inspectFinalBoard = false;
+  helpOpen = false;
+  toastMessage = '';
+  resetTurnSelection();
+  render();
+  window.scrollTo?.({top:0,behavior:'smooth'});
+}
+function showFinalBoard() {
+  if (!game || game.phase !== 'finished') return;
+  inspectFinalBoard = true;
+  render();
+  window.scrollTo?.({top:0,behavior:'smooth'});
+}
 function start(mode, format = selectedFormat) {
   clearTimeout(cpuTimer);
   const seed = Date.now() + Math.floor(Math.random()*100000);
@@ -252,16 +276,26 @@ $app.addEventListener('click', event => {
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
+  // Only the backdrop itself dismisses a modal; clicks inside its panel are ignored.
+  if (action==='dismiss-help') {
+    if (event.target === target) { helpOpen=false;render();scheduleCPU(); }
+    return;
+  }
+  if (action==='dismiss-results') {
+    if (event.target === target) showFinalBoard();
+    return;
+  }
   if (action==='help') { helpOpen=true;render();return; }
   if (action==='close-help') { helpOpen=false;render();scheduleCPU();return; }
+  if (action==='go-home') return goHome();
   if (action==='select-format' && !game) { selectedFormat=target.dataset.format;render();return; }
   if (action==='start-cpu') return start('cpu');
   if (action==='start-local') return start('local');
-  if (action==='inspect-board' && game?.phase==='finished') { inspectFinalBoard=true;render();window.scrollTo?.({top:0,behavior:'smooth'});return; }
+  if (action==='inspect-board') return showFinalBoard();
   if (action==='back-to-result' && game?.phase==='finished') { inspectFinalBoard=false;render();return; }
   if (action==='play-again') return start(game?.mode || 'cpu',match?.format || selectedFormat);
   if (action==='next-game') return advanceGame();
-  if (action==='back-home') {clearTimeout(cpuTimer);game=null;match=null;handoff=false;inspectFinalBoard=false;helpOpen=false;render();return;}
+  if (action==='back-home') return goHome(false);
   if (action==='restart') { if(window.confirm('現在の対局を終了して最初からやり直す？')) start(game.mode,match.format); return; }
   if (action==='reveal') { handoff=false;render();return; }
   if (!game || game.phase==='finished' || helpOpen || handoff || !isHumanTurn()) return;

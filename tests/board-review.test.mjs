@@ -17,7 +17,7 @@ async function makeUI() {
   const document = { getElementById: id=>id==='app'?app:null };
   const window = { confirm:()=>true };
   const deps = { ...engine, ...ai, ...matchLib };
-  const imported = 'newGame dispatch roleOf isStronger attachmentMoves getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner matchRoundName'.split(' ');
+  const imported = 'newGame dispatch roleOf isStronger attachmentMoves boardPorts getTile tilePips totalScore MARTIAL DEFAULTS chooseAIAction MATCH_FORMATS STARTING_POINTS createMatch settleMatchGame nextMatchGame matchWinner matchRoundName'.split(' ');
   const factory = new Function('deps','document','window',
     'const {'+imported.join(',')+'} = deps;\n'+source+
     '\nreturn { mount(m) { match=m;game=m.game;handoff=false;render(); }, refresh() {render();} };');

@@ -186,3 +186,40 @@ test('right-side spinner on a logically downward branch is labeled from actual s
   for(const p of three)assert.ok(html.includes(p.screenLabel),
     'candidate and graph marker must share the same display label');
 });
+
+test('Supreme opening keeps the right root visible and selectable after attaching left',()=>{
+  const {app,ctx,click}=fixture();
+  const result=runInContext(`(() => {
+    start('local','single');handoff=false;
+    const find=k=>game.tiles.filter(t=>tileKey(t)===k).map(t=>t.id);
+    game.current=0;game.hands[0]=game.tiles.map(t=>t.id);game.hands[1]=[];
+    dispatch(game,{type:'open',ids:[find('6-6')[0],find('0-0')[0]]});
+    game.current=0;game.phase='attachment';
+    const leftId=find('5-6')[0];
+    const left=attachmentMoves(game,[leftId]).find(m=>m.portKey==='root-left');
+    if(!left)throw Error('left opening should accept [5|6]');
+    dispatch(game,{type:'attach',ids:[leftId],moveKey:left.key});
+    game.current=0;game.phase='attachment';
+    resetTurnSelection();render();
+    const right=find('0-3')[0];
+    const available=attachmentMoves(game,[right]);
+    return {chosen:game.board.chosenSide,
+      rightKey:available.find(m=>m.portKey==='root-right')?.key,
+      rightId:right,
+      stillOpen:boardPorts(game.board).some(p=>p.key==='root-right'),
+      rightLabel:formatPort(boardPorts(game.board).find(p=>p.key==='root-right'),
+        boardPorts(game.board).findIndex(p=>p.key==='root-right'),graphLayout(game.board))
+    };
+  })()`,ctx);
+  assert.equal(result.chosen,'supreme');
+  assert.ok(result.stillOpen);
+  assert.ok(result.rightKey,'right root is legal for the other side of Supreme');
+  assert.match(app.innerHTML,/data-port-key="root-right"/);
+  assert.ok(app.innerHTML.includes(result.rightLabel));
+  click('select',{id:String(result.rightId)});
+  assert.ok(app.innerHTML.includes(result.rightLabel+'へ1枚'));
+  click('choose-attachment',{key:result.rightKey});
+  click('attach');
+  assert.equal(runInContext('game.board.items.length',ctx),4);
+  assert.equal(runInContext('game.board.chosenSide',ctx),'supreme');
+});

@@ -119,14 +119,14 @@ function currentRoundName() {
 }
 function matchHandLabel() {
   if (!match) return '';
-  return `${MATCH_FORMATS[match.format].label} · ${currentRoundName()}${match.format==='single'?'':` · 第${match.gameNumber}ゲーム`}`;
+  return currentRoundName();
 }
 function matchPanel() {
   if (!match) return '';
-  return `<section class="panel match-panel"><div class="side-section"><div class="side-title"><h3>${matchHandLabel()}</h3><span class="small-label">親：${nameOf(match.settled?match.history.at(-1).dealer:match.dealer)} · 最初の親：${nameOf(match.initialStarter)}</span></div>
+  return `<section class="panel match-panel"><div class="side-section"><div class="side-title match-round-heading"><h3 class="match-round-name">${matchHandLabel()}</h3><span class="small-label">${MATCH_FORMATS[match.format].label} · 第${match.gameNumber}ゲーム · 親：${nameOf(match.settled?match.history.at(-1).dealer:match.dealer)}</span></div>
     <div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div>
     <p class="footnote">${match.format==='single'?'一局戦は連荘・本場点なし':'親の早アガリで連荘・本場＋1 · アガリ時に5×本場点'} · 得点差は持ち点に反映</p>
-    ${match.history.length?`<details class="drawer"><summary>対局履歴（${match.history.length}ゲーム）</summary><table class="ledger"><thead><tr><th>ゲーム</th><th>得点差</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${match.history.map(r=>`<tr><td>${matchRoundName(match.format,r.hand,r.honba)}<small> · 第${r.game}ゲーム${r.renchan?' · 連荘':''}</small></td><td>${r.delta>0?'+':''}${r.delta}</td><td>${r.points[0]}</td><td>${r.points[1]}</td></tr>`).join('')}</tbody></table></details>`:''}</div></section>`;
+    ${match.history.length?`<details class="drawer"><summary>対局履歴（${match.history.length}ゲーム）</summary><table class="ledger"><thead><tr><th>局</th><th>得点差</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr></thead><tbody>${match.history.map(r=>`<tr><td class="match-history-round"><strong>${matchRoundName(match.format,r.hand,r.honba)}</strong><small>第${r.game}ゲーム${r.renchan?' · 連荘':''}</small></td><td>${r.delta>0?'+':''}${r.delta}</td><td>${r.points[0]}</td><td>${r.points[1]}</td></tr>`).join('')}</tbody></table></details>`:''}</div></section>`;
 }
 function sideMarkup() {
   const rows = game.rounds.map(r => `<tr><td>第${r.round}平場</td><td>${r.role[0]+r.pips[0]+r.raise[0]}</td><td>${r.role[1]+r.pips[1]+r.raise[1]}</td></tr>`).join('');
@@ -190,7 +190,7 @@ function endMarkup() {
   <div class="winner-row"><span class="win-number">${scores[0]} <span style="font-size:21px;color:#cbd7c9">—</span> ${scores[1]}</span></div><div class="review-entry"><button class="button primary" data-action="inspect-board">◇ 終局時の盤面を見る →</button></div>
   <table class="mini-table"><tr><th>このゲームの内訳</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th></tr>${itemRows.map(k=>`<tr><td>${labels[k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[0][k]}</td><td>${k==='lastDraw'||k==='remaining'?'-':''}${game.scores[1][k]}</td></tr>`).join('')}<tr><th>ゲーム得点</th><th>${scores[0]}</th><th>${scores[1]}</th></tr></table>
   <div class="settlement"><span>得点差 ${record?.delta>0?'+':''}${record?.delta??0}点 → 持ち点に反映</span><div class="match-points"><div><small>${nameOf(0)}</small><strong>${match.points[0]}</strong></div><div><small>${nameOf(1)}</small><strong>${match.points[1]}</strong></div></div></div>
-  ${isComplete?`<h3>総合成績</h3><table class="mini-table"><tr><th>ゲーム</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th><th>得点差</th></tr>${match.history.map(r=>`<tr><td>${matchRoundName(match.format,r.hand,r.honba)}<small> · 第${r.game}ゲーム</small></td><td>${r.scores[0]}</td><td>${r.scores[1]}</td><td>${r.delta>0?'+':''}${r.delta}</td></tr>`).join('')}<tr><th>最終持ち点</th><th>${match.points[0]}</th><th>${match.points[1]}</th><th>合計500</th></tr></table>`:''}
+  ${isComplete?`<h3>総合成績</h3><table class="mini-table"><tr><th>局</th><th>${nameOf(0)}</th><th>${nameOf(1)}</th><th>得点差</th></tr>${match.history.map(r=>`<tr><td class="match-history-round"><strong>${matchRoundName(match.format,r.hand,r.honba)}</strong><small>第${r.game}ゲーム</small></td><td>${r.scores[0]}</td><td>${r.scores[1]}</td><td>${r.delta>0?'+':''}${r.delta}</td></tr>`).join('')}<tr><th>最終持ち点</th><th>${match.points[0]}</th><th>${match.points[1]}</th><th>合計500</th></tr></table>`:''}
   <div class="modal-actions">${isComplete?`<button class="button primary large" data-action="play-again">同じ形式でもう一戦！</button>`:`<button class="button primary large" data-action="next-game">次のゲームへ →</button>`}<button class="button quiet" data-action="back-home">タイトルへ</button></div></div></div>`;
 }
 function handoffMarkup() {

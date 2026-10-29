@@ -319,8 +319,14 @@ function attachmentMoves(game, ids, player = game.current) {
   const left = items[0].a, right = items[items.length - 1].b;
   const out = [], seen = new Set();
   const push = (side, placements, special = false) => {
+    // Two physically distinct copies of the same tile can produce identical
+    // visible placements when swapped. Show that move only once, but keep the
+    // original ID-based action key to execute the chosen placement safely.
+    const visibleKey = `${side}:${placements.map(p => `${p.a}/${p.b}`).join(':')}`;
+    if (seen.has(visibleKey)) return;
+    seen.add(visibleKey);
     const key = `${side}:${placements.map(p => `${p.id}/${p.a}/${p.b}`).join(':')}`;
-    if (!seen.has(key)) { seen.add(key); out.push({ side, placements, special, key }); }
+    out.push({ side, placements, special, key });
   };
   if (ids.length === 1) {
     for (const v of orientationVariants(game, ids[0])) {

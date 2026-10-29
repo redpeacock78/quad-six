@@ -84,6 +84,7 @@ npm run build:standalone
 - `tests/match.test.mjs` — 対局形式・得点移動テスト
 - `tests/board-review.test.mjs` — 相手牌の秘匿表示・終局盤面レビューのテスト
 - `tests/navigation-modal.test.mjs` — GitHubリンク・タイトル遷移・モーダル枠外クリックのテスト
+- `tests/starting-parent-ui.test.mjs` — CPUが最初の親になった場合の自動開始と親交代のテスト
 - `.github/workflows/pages.yml` — GitHub Pages自動デプロイ（テスト後に公開）
 
 ## 注意

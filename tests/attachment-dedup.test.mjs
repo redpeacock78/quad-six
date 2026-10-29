@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newGame, attachmentMoves, dispatch, tileKey } from '../site/engine.js';
+import { newGame, attachmentMoves, allAttachmentMoves, dispatch, tileKey } from '../site/engine.js';
+import { chooseAIAction } from '../site/ai.js';
 
 function stagedGame(selectedKey = '3-4') {
   const game = newGame({ seed: 29, startingPlayer: 0 });
@@ -39,6 +40,38 @@ test('two identical [3|4] tiles give only left and right choices', () => {
     [[4, 3], [3, 4]]);
   const reversed = attachmentMoves(game, [...ids].reverse());
   assert.equal(reversed.length, 2, 'selection order must not double candidate count');
+});
+
+test('duplicate tile move keys are stable across selection order, even for two-tile placements', () => {
+  const { game, ids } = stagedGame('3-4');
+  const forward = attachmentMoves(game, ids);
+  const reverse = attachmentMoves(game, [...ids].reverse());
+  assert.deepEqual(
+    reverse.map(({ side, key, placements }) => ({ side, key, placements })),
+    forward.map(({ side, key, placements }) => ({ side, key, placements }))
+  );
+  for (const move of forward) {
+    const placementOrder = move.placements.map(p => p.id);
+    assert.ok(attachmentMoves(game, placementOrder).some(candidate => candidate.key === move.key),
+      `dispatch must accept the move key after receiving placement-ordered IDs: ${move.key}`);
+    const copy = structuredClone(game);
+    dispatch(copy, { type: 'attach', ids: placementOrder, moveKey: move.key });
+    assert.equal(copy.phase, 'finished');
+    assert.equal(copy.scores[0].pips, 14);
+  }
+});
+
+test('AI-chosen two-tile attachments are always accepted by dispatch', () => {
+  const { game } = stagedGame('3-4');
+  for (let i = 0; i < 20; i++) {
+    const copy = structuredClone(game);
+    const action = chooseAIAction(copy);
+    assert.equal(action.type, 'attach');
+    assert.equal(action.ids.length, 2);
+    assert.ok(allAttachmentMoves(copy).some(candidate => candidate.key === action.moveKey));
+    assert.doesNotThrow(() => dispatch(copy, action));
+    assert.equal(copy.scores[0].pips, 14);
+  }
 });
 
 test('deduplicated action keys still play both physical tile copies and score 14', () => {

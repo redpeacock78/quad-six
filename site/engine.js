@@ -231,48 +231,55 @@ function orientationVariants(game, id) {
   if (t.a === t.b) return [oriented(game, id, false)];
   return [oriented(game, id, false), oriented(game, id, true)];
 }
-/** Legal attachment actions for a set of 1 or 2 distinct tiles. */
-export function attachmentMoves(game, ids, player = game.current) {
-  if (game.phase !== 'attachment' || !game.board || ids.length < 1 || ids.length > 2) return [];
-  if (new Set(ids).size !== ids.length || ids.some(id => !game.hands[player].includes(id))) return [];
-  // Canonicalize tile IDs: a move key must resolve identically when the AI or
-  // UI passes a two-tile selection in the opposite order.
-  ids = [...ids].sort((a, b) => a - b);
-  const items = game.board.items;
-  const left = items[0].a, right = items[items.length - 1].b;
-  const out = [], seen = new Set();
-  const push = (side, placements, special = false) => {
-    // Two physically distinct copies of the same tile can produce identical
-    // visible placements when swapped. Show that move only once, but keep the
-    // original ID-based action key to execute the chosen placement safely.
-    const visibleKey = `${side}:${placements.map(p => `${p.a}/${p.b}`).join(':')}`;
-    if (seen.has(visibleKey)) return;
-    seen.add(visibleKey);
-    const key = `${side}:${placements.map(p => `${p.id}/${p.a}/${p.b}`).join(':')}`;
-    out.push({ side, placements, special, key });
+
+/** Live endpoints of the branching domino graph. */
+export function boardPorts(board) {
+  if(!board)return [];
+  if(Array.isArray(board.ports))return board.ports;
+  const a=board.items||[];
+  return a.length?[{key:'root-left',owner:a[0].id,pip:a[0].a,side:'left',slot:0,root:true},{key:'root-right',owner:a[a.length-1].id,pip:a[a.length-1].b,side:'right',slot:0,root:true}]:[];
+}
+function initialPorts(items) {
+  return [{key:'root-left',owner:items[0].id,pip:items[0].a,side:'left',slot:0,root:true},
+    {key:'root-right',owner:items[1].id,pip:items[1].b,side:'right',slot:0,root:true}];
+}
+function outgoingPorts(v,side){
+  return Array.from({length:v.a===v.b?3:1},(_,slot)=>({key:`tile-${v.id}-${slot}`,owner:v.id,pip:v.b,side,slot,root:false}));
+}
+/** Normal play is limited to one active endpoint; only Supreme splits two. */
+export function attachmentMoves(game,ids,player=game.current){
+  if(game.phase!=='attachment'||!game.board||ids.length<1||ids.length>2)return [];
+  if(new Set(ids).size!==ids.length||ids.some(id=>!game.hands[player].includes(id)))return [];
+  ids=[...ids].sort((a,b)=>a-b);
+  const ports=boardPorts(game.board),out=[],seen=new Set();
+  const push=(port,placements,special=false,secondPort=null)=>{
+    const target=secondPort?`${port.key}+${secondPort.key}`:port.key;
+    const visible=`${target}:${placements.map(v=>`${v.a}/${v.b}`).join(':')}`;
+    if(seen.has(visible))return;
+    seen.add(visible);
+    const key=`${target}:${placements.map(v=>`${v.id}/${v.a}/${v.b}`).join(':')}`;
+    out.push({key,portKey:port.key,portKey2:secondPort?.key||null,
+      side:special?'both':port.root?port.side:'branch',
+      portLabel:port.root?(port.side==='left'?'左起点':'右起点'):`${port.pip}の枝（${port.key}）`,
+      placements,special,endValue:placements[placements.length-1].b});
   };
-  if (ids.length === 1) {
-    for (const v of orientationVariants(game, ids[0])) {
-      if (v.b === left) push('left', [v]);
-      if (v.a === right) push('right', [v]);
-    }
-  } else {
-    for (const order of [ids, [ids[1], ids[0]]]) {
-      for (const a of orientationVariants(game, order[0])) {
-        for (const b of orientationVariants(game, order[1])) {
-          // right: first tile touches existing right endpoint
-          if (a.a === right && a.b === b.a) push('right', [a, b]);
-          // left: first tile is closest to board, second tile is outermost
-          if (a.b === left && b.b === a.a) push('left', [b, a]);
-        }
+  for(const port of ports){
+    if(ids.length===1){for(const v of orientationVariants(game,ids[0]))if(v.a===port.pip)push(port,[v]);}
+    else for(const order of [ids,[ids[1],ids[0]]]){
+      for(const a of orientationVariants(game,order[0])){
+        if(a.a!==port.pip)continue;
+        for(const b of orientationVariants(game,order[1]))if(b.a===a.b)push(port,[a,b]);
       }
     }
-    const keys = ids.map(id => tileKey(getTile(game, id)));
-    if (pairKey(...keys) === pairKey('0-0', '6-6')) {
-      const zero = oriented(game, ids[keys.indexOf('0-0')]);
-      const six = oriented(game, ids[keys.indexOf('6-6')]);
-      if (left === 0 && right === 6) push('both', [zero, six], true);
-      if (left === 6 && right === 0) push('both', [six, zero], true);
+  }
+  if(ids.length===2){
+    const keys=ids.map(id=>tileKey(getTile(game,id)));
+    if(pairKey(...keys)===pairKey('0-0','6-6')){
+      const zero=oriented(game,ids[keys.indexOf('0-0')]);
+      const six=oriented(game,ids[keys.indexOf('6-6')]);
+      for(const p0 of ports.filter(p=>p.pip===0))
+        for(const p6 of ports.filter(p=>p.pip===6&&p.key!==p0.key))
+          push(p0,[zero,six],true,p6);
     }
   }
   return out;
@@ -303,7 +310,8 @@ export function dispatch(game, action) {
         game.lastOverwriter = p;
       }
       const flips = action.flips || [false, false];
-      game.board = { items: ids.map((id, i) => oriented(game, id, Boolean(flips[i]))), splitIndex: 1 };
+      const roots=ids.map((id,i)=>oriented(game,id,Boolean(flips[i])));
+      game.board={items:roots,splitIndex:1,ports:initialPorts(roots),chosenSide:null};
       removeHand(game, p, ids);
       game.openingRole = role;
       award(game, p, 'role', role.points);
@@ -335,16 +343,24 @@ export function dispatch(game, action) {
       const candidates = attachmentMoves(game, ids, p);
       const move = candidates.find(x => x.key === action.moveKey);
       assert(move, 'その接続はできません');
-      removeHand(game, p, ids);
-      if (move.side === 'left') {
-        game.board.items.unshift(...move.placements);
-        game.board.splitIndex += move.placements.length;
-      } else if (move.side === 'right') {
-        game.board.items.push(...move.placements);
-      } else {
-        game.board.items.unshift(move.placements[0]);
-        game.board.items.push(move.placements[1]);
-        game.board.splitIndex++;
+
+      removeHand(game,p,ids);
+      const board=game.board,existing=boardPorts(board);
+      const port=existing.find(x=>x.key===move.portKey);
+      const second=move.portKey2?existing.find(x=>x.key===move.portKey2):null;
+      const consumed=new Set([move.portKey,move.portKey2].filter(Boolean));
+      // Seal the untouched root after the first ordinary connection.
+      board.ports=existing.filter(x=>!consumed.has(x.key)
+        && !(board.chosenSide===null&&!move.special&&x.root&&x.key!==port.key));
+      if(board.chosenSide===null)board.chosenSide=move.special?'supreme':port.side;
+      const add=(v,parentPort)=>{
+        board.items.push({...v,parent:parentPort.owner,via:parentPort.key,side:parentPort.side,slot:parentPort.slot});
+        board.ports.push(...outgoingPorts(v,parentPort.side));
+      };
+      add(move.placements[0],port);
+      if(move.placements.length===2){
+        if(move.special)add(move.placements[1],second);
+        else add(move.placements[1],{owner:move.placements[0].id,side:port.side,slot:0,key:`tile-${move.placements[0].id}-0`});
       }
       award(game, p, 'pips', ids.reduce((s, id) => s + tilePips(getTile(game, id)), 0));
       game.passStreak = 0;

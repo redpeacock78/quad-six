@@ -69,25 +69,26 @@ test('exact stock exhaustion by exchange enters final opening after all replacem
   assert.equal(game.current, game.lead);
 });
 
-test('legacy one-tile exchange and no-exchange options remain valid', () => {
+test('legacy one-tile exchange works, but no-exchange is rejected atomically', () => {
   const game = adjustment();
   const id = game.hands[0][0];
   dispatch(game, { type: 'adjust', choice: 'exchange', id });
   assert.ok(!game.hands[0].includes(id));
   assert.equal(game.hands[0].length, 9);
   const other = adjustment(43);
-  dispatch(other, { type: 'adjust', choice: 'none' });
-  assert.equal(other.hands[0].length, 9);
-  assert.equal(other.current, 1);
+  const snapshot=JSON.stringify(other);
+  assert.throws(()=>dispatch(other,{type:'adjust',choice:'none'}),/1枚ドローか交換/);
+  assert.equal(JSON.stringify(other),snapshot);
 });
 
 test('CPU adjustment action never requests more replacements than stock', () => {
   for (let seed = 1; seed <= 120; seed++) {
     const game = adjustment(seed);
     game.current = 1;
-    game.stock = game.stock.slice(0, seed % 10);
+    game.stock = game.stock.slice(0, 1 + seed % 9);
     const action = chooseAIAction(game);
     assert.ok(action);
+    assert.notEqual(action.choice,'none');
     assert.doesNotThrow(() => dispatch(game, action), `seed ${seed}`);
   }
 });

@@ -91,6 +91,7 @@ function beginRound(game) {
   game.lastOverwriter = null;
   game.passStreak = 0;
   game.adjustDone = [false, false];
+  game.bidExchanged = [false, false]; // Once per player per opening auction.
   game.phase = 'opening';
   game.current = game.lead;
   game.rounds.push({ round: game.round, role: [0, 0], pips: [0, 0], raise: [0, 0] });
@@ -109,7 +110,7 @@ export function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now(), star
     final: false, finalOut: [false, false], lastDrawBy: null, lastDrawExempt: false,
     openingRole: null, raise: 0, lastOverwriter: null, passStreak: 0,
     scores: [0, 1].map(() => ({ role: 0, pips: 0, raise: 0, tableHonba: 0, early: 0, lastDraw: 0, remaining: 0 })),
-    rounds: [], history: [], adjustDone: [false, false], endReason: null, endWinner: null,
+    rounds: [], history: [], adjustDone: [false, false], bidExchanged: [false, false], endReason: null, endWinner: null,
     initialHand
   };
   beginRound(game);
@@ -194,6 +195,17 @@ function draw(game, player, exempt = false) {
   game.hands[player].push(game.stock.pop());
   if (game.stock.length === 0) toFinal(game, player, exempt);
   return true;
+}
+/** Publicly discard and replace 1..entire hand; validate before any mutation. */
+function exchange(game, player, ids) {
+  assert(Array.isArray(ids) && ids.length >= 1, '交換する牌を1枚以上選択してください');
+  assert(new Set(ids).size === ids.length &&
+    ids.every(id => game.hands[player].includes(id)), '交換牌に重複または手札外の牌があります');
+  assert(ids.length <= game.stock.length,
+    `山札は残り${game.stock.length}枚です。交換枚数を減らしてください`);
+  removeHand(game, player, ids);
+  game.discard.push(...ids);
+  for (let k = 0; k < ids.length; k++) draw(game, player);
 }
 function endRound(game) {
   if (game.board) game.discard.push(...game.board.items.map(p => p.id));
@@ -306,6 +318,17 @@ export function dispatch(game, action) {
   assert(game.phase !== 'finished', '既に終局しています');
   const p = game.current;
   switch (action.type) {
+    case 'bidExchange': {
+      assert(game.phase === 'opening', '競り中ではありません');
+      assert(!game.final, '山札がありません');
+      assert(!game.bidExchanged[p], 'この平場ではすでに競り中の交換を使いました');
+      exchange(game,p,action.ids);
+      game.bidExchanged[p] = true;
+      record(game, `P${p + 1} 競り中に${action.ids.length}枚公開交換`,p);
+      // Exchange is part of this turn: the same player must still open,
+      // raise, or pass. A last-stock draw starts final play without skipping it.
+      break;
+    }
     case 'open': {
       assert(game.phase === 'opening', '平場ではありません');
       const ids = action.ids || [];
@@ -409,23 +432,16 @@ export function dispatch(game, action) {
     case 'adjust': {
       assert(game.phase === 'adjustment', '手札調整ではありません');
       assert(!game.adjustDone[p], '調整は各自1回です');
-      assert(['none', 'draw', 'exchange'].includes(action.choice), '無効な調整方法');
+      assert(['draw', 'exchange'].includes(action.choice), '局間は1枚ドローか交換を選んでください');
       if (action.choice === 'exchange') {
         const ids = action.ids ?? (action.id == null ? [] : [action.id]);
-        assert(Array.isArray(ids) && ids.length >= 1, '交換する牌を1枚以上選択してください');
-        assert(new Set(ids).size === ids.length && ids.every(id => game.hands[p].includes(id)), '交換牌に重複または手札外の牌があります');
-        // Validate the entire exchange before removing anything. Exchanged tiles
-        // go straight to the public discard, never back into the draw pile.
-        assert(ids.length <= game.stock.length, `山札は残り${game.stock.length}枚です。交換枚数を減らしてください`);
-        removeHand(game, p, ids);
-        game.discard.push(...ids);
-        for (let k = 0; k < ids.length; k++) draw(game, p);
+        exchange(game,p,ids);
         record(game, `P${p + 1} ${ids.length}枚公開交換`, p);
       } else if (action.choice === 'draw') {
         assert(game.stock.length > 0, '山札がありません');
         draw(game, p);
         record(game, `P${p + 1} 1枚補充`, p);
-      } else record(game, `P${p + 1} 調整なし`, p);
+      }
       game.adjustDone[p] = true;
       if (game.final) break;
       if (game.adjustDone.every(Boolean)) startAfterAdjust(game);

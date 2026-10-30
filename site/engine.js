@@ -220,6 +220,9 @@ function endRound(game) {
   game.current = game.lead;
   game.phase = 'adjustment';
   game.adjustDone = [false, false];
+  // A new bidding round starts after adjustment. If an adjustment exhausts
+  // the stock, toFinal skips beginRound, so reset bidding rights HERE as well.
+  game.bidExchanged = [false, false];
   // If stock empties exactly after a normal pass, toFinal prevents resetting.
 }
 function startAfterAdjust(game) {

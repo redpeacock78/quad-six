@@ -1,4 +1,4 @@
-import { handPairs, isStronger, allAttachmentMoves, getTile, tilePips, tileKey, attachmentMoves, totalScore } from './engine.js?v=port-feedback-20261030f';
+import { handPairs, isStronger, allAttachmentMoves, getTile, tilePips, tileKey, attachmentMoves, totalScore } from './engine.js?v=final-alternation-20261030a';
 
 
 /** An intentionally readable starter opponent, not an optimal solver. */

@@ -107,7 +107,7 @@ export function newGame({ mode = 'cpu', initialHand = 9, seed = Date.now(), star
   const game = {
     version: 3, mode, seed, tiles, stock, hands,
     discard: [], board: null, current: startingPlayer, lead: startingPlayer, phase: 'opening', round: 1,
-    final: false, finalOut: [false, false], lastDrawBy: null, lastDrawExempt: false,
+    final: false, lastDrawBy: null, lastDrawExempt: false,
     openingRole: null, raise: 0, lastOverwriter: null, passStreak: 0,
     scores: [0, 1].map(() => ({ role: 0, pips: 0, raise: 0, tableHonba: 0, early: 0, lastDraw: 0, remaining: 0 })),
     rounds: [], history: [], adjustDone: [false, false], bidExchanged: [false, false], endReason: null, endWinner: null,
@@ -150,10 +150,10 @@ function settleOpening(game, passedBy) {
   }
   game.phase = 'attachment';
   game.passStreak = 0;
-  game.current = game.final && game.finalOut[passedBy] ? other(passedBy) : passedBy;
+  game.current = passedBy; // A declined raise does not eliminate the player.
   record(game, '付札フェーズ開始');
 }
-function nextActive(game, player) { return game.final && game.finalOut[other(player)] ? player : other(player); }
+function nextActive(_game, player) { return other(player); }
 function finish(game, reason, winner = null) {
   if (game.phase === 'finished') return;
   const previousPhase = game.phase;
@@ -180,7 +180,6 @@ function finish(game, reason, winner = null) {
 function toFinal(game, player, exempt = false) {
   if (game.final || game.phase === 'finished') return;
   game.final = true;
-  game.finalOut = [false, false];
   game.lastDrawBy = player;
   game.lastDrawExempt = exempt;
   game.passStreak = 0;
@@ -352,12 +351,12 @@ export function dispatch(game, action) {
         chosenSide:role.tier==='supreme'?'supreme':null};
       removeHand(game, p, ids);
       game.openingRole = role;
+      game.passStreak = 0; // A new final opening clears any passes while the table was empty.
       award(game, p, 'role', role.points);
       award(game, p, 'pips', ids.reduce((s, id) => s + tilePips(getTile(game, id)), 0));
       record(game, `P${p + 1} ${role.name} · +${role.points}役点${game.raise ? ` · ${game.raise}レイズ` : ''}`, p);
       if (checkEndHand(game, p)) break;
       game.current = nextActive(game, p);
-      if (game.final && game.current === p) settleOpening(game, other(p));
       break;
     }
     case 'passOpen': {
@@ -366,11 +365,16 @@ export function dispatch(game, action) {
         assert(game.board, '最初の役は必ず出してください');
         record(game, `P${p + 1} レイズを見送り`, p);
         settleOpening(game, p);
+      } else if (game.board) {
+        // Passing a final raise closes bidding, not the player's attachment rights.
+        record(game, `P${p + 1} 最終レイズを見送り · 交互付札へ`, p);
+        settleOpening(game, p);
       } else {
-        game.finalOut[p] = true;
-        record(game, `P${p + 1} 最終平場をパス · 脱落`, p);
-        if (game.finalOut.every(Boolean)) finish(game, 'exhaustion');
-        else if (game.board) settleOpening(game, p);
+        // A player with fewer than two tiles cannot open an empty final table.
+        assert(game.hands[p].length < 2, '最初の役は必ず出してください');
+        game.passStreak++;
+        record(game, `P${p + 1} 最終平場で役出し不可`, p);
+        if (game.passStreak >= 2) finish(game, 'exhaustion');
         else game.current = other(p);
       }
       break;
@@ -415,14 +419,17 @@ export function dispatch(game, action) {
     case 'passAttach': {
       assert(game.phase === 'attachment', '付札フェーズではありません');
       if (game.final) {
-        game.finalOut[p] = true;
-        record(game, `P${p + 1} 最終付札をパス · 脱落`, p);
-        if (game.finalOut.every(Boolean)) finish(game, 'exhaustion');
+        // Even after a pass, the player may return if the opponent extends the board.
+        game.passStreak++;
+        record(game, `P${p + 1} 最終付札をパス（連続${game.passStreak}回）`, p);
+        if (game.passStreak >= 2) finish(game, 'exhaustion');
         else game.current = other(p);
       } else {
         const drawn = draw(game, p);
         record(game, `P${p + 1} パス · ${drawn ? '1枚ドロー' : '山札なし'}`, p);
         if (game.final) {
+          // Drawing the last stock tile is still this player's attachment pass.
+          game.passStreak = 1;
           game.current = other(p);
           break;
         }

@@ -1,6 +1,6 @@
-import { newGame, dispatch, roleOf, isStronger, attachmentMoves, boardPorts, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js?v=port-feedback-20261030f';
-import { chooseAIAction } from './ai.js?v=port-feedback-20261030f';
-import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner, matchRoundName } from './match.js?v=port-feedback-20261030f';
+import { newGame, dispatch, roleOf, isStronger, attachmentMoves, boardPorts, getTile, tilePips, totalScore, MARTIAL, DEFAULTS } from './engine.js?v=final-alternation-20261030a';
+import { chooseAIAction } from './ai.js?v=final-alternation-20261030a';
+import { MATCH_FORMATS, STARTING_POINTS, createMatch, settleMatchGame, nextMatchGame, matchWinner, matchRoundName } from './match.js?v=final-alternation-20261030a';
 
 
 const $app = document.getElementById('app');
@@ -121,10 +121,10 @@ function actionPanel() {
     const allowed = role && isStronger(role, game.openingRole);
     const pending = game.board ? 'より強い役でレイズするか、見送って付札へ' : '手札から2枚選んで最初の役を置こう';
     return `<div class="action-head"><strong>${game.board?'レイズ勝負':'最初の役を出す'}</strong><span class="small-label">天九</span></div>
-      <p class="help-text">${pending}${game.final?' · 最終局（パスで脱落）':''}</p>
+      <p class="help-text">${pending}${game.final?' · 山札なし（レイズ見送り後も付札に参加）':''}</p>
       ${role ? `<div class="role-preview"><span>選択した役<br><strong>${safe(role.name)}</strong></span><span>役点 +${role.points} / ピップ +${selected.reduce((s,id)=>s+tilePips(getTile(game,id)),0)} ${!allowed?'<br>※ レイズ不可':''}</span></div>` : ''}
       <div class="action-buttons"><button class="button primary" data-action="open" ${!ready||!allowed?'disabled':''}>${game.board?'この役でレイズ':'役を場に出す'} ↗</button>
-      ${(game.board || game.final) ? `<button class="button quiet" data-action="passOpen">${game.final?'パスして脱落':'レイズを見送る'}</button>` : ''}
+      ${(game.board || (game.final && game.hands[game.current].length < 2)) ? `<button class="button quiet" data-action="passOpen">${game.board?'レイズを見送って付札へ':'役出し不可 · パス'}</button>` : ''}
       ${exchangeAvailable?'<button class="button" data-action="opening-exchange-mode">競り中に手札交換（残り1回）</button>':game.bidExchanged?.[game.current]?'<span class="help-text">この平場の競り中交換は使用済み</span>':''}
       ${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
@@ -132,9 +132,9 @@ function actionPanel() {
     const moves = attachmentMoves(game, selected);
     const activeMove = activeAttachmentMove(moves);
     return `<div class="action-head"><strong>付札を出す</strong><span class="small-label">ドミノ</span></div>
-      <p class="help-text">① 手札から1〜2枚選ぶ → ② 盤面の位置と端点番号で接続先を選ぶ → ③「付札を場に出す」で確定${game.openingRole?.tier==='supreme'?' · 至尊の平場は左右両側OK':''}${game.final?' · 最終局のパスは即脱落':''}</p>
+      <p class="help-text">① 手札から1〜2枚選ぶ → ② 盤面の位置と端点番号で接続先を選ぶ → ③「付札を場に出す」で確定${game.openingRole?.tier==='supreme'?' · 至尊の平場は左右両側OK':''}${game.final?' · 山札なし：両者連続パスで精算':''}</p>
       ${movesMarkup(moves, activeMove, graphLayout(game.board))}
-      <div class="action-buttons attachment-actions"><button class="button primary" data-action="attach" ${activeMove?'':'disabled'}>付札を場に出す ↗</button><button class="button quiet" data-action="passAttach">${game.final?'パスして脱落':'パス · 1枚引く'}</button>${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
+      <div class="action-buttons attachment-actions"><button class="button primary" data-action="attach" ${activeMove?'':'disabled'}>付札を場に出す ↗</button><button class="button quiet" data-action="passAttach">${game.final?'パス · ドローなし':'パス · 1枚引く'}</button>${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
   if (game.phase === 'adjustment') {
     const maxExchange = Math.min(game.hands[game.current].length, game.stock.length);
@@ -280,7 +280,7 @@ function phaseLabel() {
   return '終局';
 }
 function scoreCard(p) {
-  return `<div class="score-person ${game.current===p&&game.phase!=='finished'?'active':''}"><div><div class="player-name">${p===0?'◈':'◇'} ${nameOf(p)} ${game.finalOut[p]?'· 脱落':''}</div><div class="player-detail">手札 ${game.hands[p].length}枚 / 役 ${game.scores[p].role} / 付札等 ${game.scores[p].pips}</div></div><div class="points">${totalScore(game,p)}</div></div>`;
+  return `<div class="score-person ${game.current===p&&game.phase!=='finished'?'active':''}"><div><div class="player-name">${p===0?'◈':'◇'} ${nameOf(p)} </div><div class="player-detail">手札 ${game.hands[p].length}枚 / 役 ${game.scores[p].role} / 付札等 ${game.scores[p].pips}</div></div><div class="points">${totalScore(game,p)}</div></div>`;
 }
 function currentRoundName() {
   if (!match) return '';
@@ -324,7 +324,7 @@ function gameMarkup() {
   const ports=boardPorts(game.board);
   return `<section class="game-layout"><div class="main-column">
     ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · ${currentRoundName()} · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
-    <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?`${currentRoundName()} · 最終出牌`:`${currentRoundName()} · 第${game.round}平場`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
+    <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?`${currentRoundName()} · 最終出牌`:`${currentRoundName()} · 第${game.round}平場`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・連続2パスで精算':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
     <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>開放端 <b>${ports.length}か所</b></span><span>${game.openingRole?.tier==='supreme'?'至尊：左右両側の起点が有効':'同じ数字の枝に接続 · 盤面の位置と端点番号で選択'}</span><span>数字 <b>${ports.map(p=>p.pip).join('・')||'—'}</b></span></div></section>
     <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / ${game.phase==='adjustment'||(game.phase==='opening'&&biddingExchangeMode)?Math.min(game.hands[current].length,game.stock.length):2}`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
    </div>${sideMarkup()}</section>`;
@@ -346,7 +346,7 @@ function helpMarkup() {
   <p class="footnote">文牌は原則ピップ合計で比較するよ · ただし [0｜0] の対子だけは [6｜6] の対子に勝つ特例があるよ · 雑同士のレイズは不可としているよ</p>
   <h3>② 付札：ドミノ</h3><p>最初の付札で左右どちらかの起点を選ぶよ · その後の通常付札は選んだ側の枝だけに接続（反対側の起点は閉じる） · ただし平場役が至尊 [6｜6]＋[0｜0] の場合は左右の起点を閉じず、両側から付札を続けられるよ · 1手で1枚か2枚を同じ枝に連続接続するよ · ゾロ目のダブル牌を置くと縦置きになり、接続した方向以外の3方向が開放されるよ · 枝は全部独立して伸ばせる · 至尊 [0｜0]＋[6｜6] だけは例外として数字0と6の2つの開放端へ同時に付札できるよ</p>
   <h3>③ パスと局の終了</h3><p>通常の付札でパスすると山札から1枚引くよ · 両者が連続パスしたら場の牌をすべて公開除外し、第N平場とレイズ数をリセットするよ（麻雀式の東N局・南N局とは別） · 局間は1枚ドローまたは手札1〜全枚数の公開交換が必須だよ · 交換は手札全部までOK（山札の残数が上限） · 除外した牌は山札に戻さず同数を補充するよ</p>
-  <h3>④ 終局と得点</h3><p>手札0枚なら早アガリで即終了、山札0枚なら最後の付札を続けて精算するよ · 最終付札中のパスは脱落になるよ</p>
+  <h3>④ 終局と得点</h3><p>手札0枚なら早アガリで即終了、山札0枚でも競りを見送った人は交互付札に参加するよ · 最終付札はドローなしで交互に続け、一度パスしても次の手番で再参加できるよ · 両者の連続パスで精算するよ</p>
   <table class="mini-table"><tr><th>項目</th><th>計算</th></tr><tr><td>役とピップ</td><td>出したときに加算</td></tr><tr><td>レイズ点</td><td>平場のレイズ回数×3点を最終レイズ者へ</td></tr><tr><td>本場点</td><td>東風・半荘のみ。早アガリした側に5×現在の本場数</td></tr><tr><td>早アガリ</td><td>+15点</td></tr><tr><td>山を最後に引いた人</td><td>−15点（強制補充を除く）</td></tr><tr><td>残った手札</td><td>ピップ合計÷2、切り上げで減点</td></tr></table>
   <p class="footnote">実装上の暫定裁定：平場の2枚は中央に並べ、外側に見えている数字を左右の開放端にするよ · 平場の見送り側が最初の付札を行うよ · 雑同士のレイズは不可 · 付札の至尊には役点は追加しないよ · 各ゲーム内の平場先攻は局ごとに交代するよ</p>
   <div class="modal-actions"><button class="button primary" data-action="close-help">盤面に戻る</button></div></div></div>`;

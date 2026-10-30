@@ -2,11 +2,45 @@ import { handPairs, isStronger, allAttachmentMoves, getTile, tilePips, tileKey, 
 
 
 /** An intentionally readable starter opponent, not an optimal solver. */
+function bidExchangeTiles(game, player) {
+  const hand=game.hands[player];
+  const counts=new Map();
+  for(const id of hand){
+    const k=tileKey(getTile(game,id));
+    counts.set(k,(counts.get(k)||0)+1);
+  }
+  // Preserve existing pairs and both Supreme components when possible.
+  // At least one tile is replaceable even if the entire hand is protected.
+  const loose=hand.filter(id=>{
+    const key=tileKey(getTile(game,id));
+    return counts.get(key)===1 && key!=='0-0' && key!=='6-6';
+  });
+  const pool=loose.length?loose:hand;
+  const max=Math.min(pool.length,game.stock.length);
+  if(!max)return [];
+  const count=Math.min(max,Math.max(1,Math.ceil(pool.length*(.45+Math.random()*.45))));
+  return [...pool].sort((a,b)=>tilePips(getTile(game,b))-tilePips(getTile(game,a)))
+    .slice(0,count);
+}
+
 export function chooseAIAction(game) {
   const p = game.current, hand = game.hands[p];
   if (game.phase === 'opening') {
     let candidates = handPairs(game, p, Boolean(game.board));
+    // Spend the optional bidding exchange to chase a stronger role.
+    // No role can beat Supreme, so exchanging there would only burn stock.
+    const canTrade=!game.final&&!game.bidExchanged?.[p]&&game.stock.length>0;
+    if (canTrade && game.board && candidates.length===0 &&
+        game.openingRole?.tier!=='supreme' && Math.random()<.88) {
+      const ids=bidExchangeTiles(game,p);
+      if(ids.length)return {type:'bidExchange',ids};
+    }
     if (candidates.length === 0) return { type: 'passOpen' };
+    if(canTrade && !game.board && candidates.every(c=>c.role.tier==='common') &&
+       Math.random()<.35){
+      const ids=bidExchangeTiles(game,p);
+      if(ids.length)return {type:'bidExchange',ids};
+    }
     // Reserve supreme occasionally for the next round when opening the table.
     const tiers = { supreme: 5, civil: 4, martial: 3, common: 1 };
     candidates = candidates.map(c => ({ ...c, value: tiers[c.role.tier] * 15 + c.role.level * .7 + c.ids.reduce((v, id) => v + tilePips(getTile(game, id)), 0) * .2 }));
@@ -38,7 +72,7 @@ export function chooseAIAction(game) {
     return { type: 'attach', ids: move.placements.map(v => v.id), moveKey: move.key };
   }
   if (game.phase === 'adjustment') {
-    if (game.stock.length === 0) return { type: 'adjust', choice: 'none' };
+    if (game.stock.length === 0) return null; // Exhaustion already means final play.
     if (hand.length < 3 && Math.random() < .6) return { type: 'adjust', choice: 'draw' };
     if (Math.random() < .65 && hand.length >= 4) {
       const cnt = new Map();
@@ -53,7 +87,7 @@ export function chooseAIAction(game) {
         if (count > 0) return { type: 'adjust', choice: 'exchange', ids: candidates.slice(0, count) };
       }
     }
-    return { type: 'adjust', choice: 'none' };
+    return { type: 'adjust', choice: 'draw' };
   }
   return null;
 }

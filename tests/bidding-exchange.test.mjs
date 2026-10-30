@@ -108,3 +108,22 @@ test('Supreme opening and two-root exception survive exchange before opening',()
   assert.equal(g.board.chosenSide,'supreme');
   assert.equal(boardPorts(g.board).length,2);
 });
+
+test('stock exhaustion during compulsory adjustment starts a fresh final auction',()=>{
+  const g=fixture();
+  dispatch(g,{type:'bidExchange',ids:[g.hands[0][0]]});
+  dispatch(g,{type:'open',ids:g.hands[0].slice(0,2)});
+  dispatch(g,{type:'passOpen'});
+  dispatch(g,{type:'passAttach'});
+  dispatch(g,{type:'passAttach'});
+  assert.equal(g.phase,'adjustment');
+  assert.deepEqual(g.bidExchanged,[false,false],
+    'end of previous table must release bidding rights before drawing');
+  g.stock=g.stock.slice(0,1);
+  dispatch(g,{type:'adjust',choice:'draw'});
+  assert.equal(g.final,true);
+  assert.equal(g.phase,'opening');
+  assert.deepEqual(g.bidExchanged,[false,false],
+    'the final bidding round must not inherit stale exchange permissions');
+  assert.equal(g.lastDrawExempt,false);
+});

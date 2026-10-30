@@ -842,7 +842,12 @@ function activeAttachmentMove(moves) {
   return moves.find(move => move.key === selectedMoveKey) || (moves.length === 1 ? moves[0] : null);
 }
 function movesMarkup(moves, activeMove, layout) {
-  if (!moves.length) return `<div class="empty-action">${selected.length ? '選んだ牌は今の開放端に接続できないよ' : '1枚か2枚を選んで接続方法を確認しよう'}</div>`;
+  if (!moves.length) {
+    if (!selected.length) return '<div class="empty-action">1枚か2枚を選んで接続方法を確認しよう</div>';
+    const ends=boardPorts(game.board).map(port=>port.pip).join('・')||'なし';
+    const pairNote=selected.length===2?'選んだ2枚は同じ枝へ連続接続する必要があるよ。1枚だけの付札も試してみてね。':'';
+    return `<div class="empty-action">選んだ${selected.length}枚の接続先がないよ。現在の開放数字：${ends}。${pairNote}</div>`;
+  }
   return `<div class="move-options" aria-label="付札の接続先">${moves.map(move => `<button type="button" class="move-option${activeMove?.key === move.key ? ' chosen' : ''}" data-action="choose-attachment" data-key="${safe(move.key)}" aria-pressed="${activeMove?.key === move.key}">${move.special?'✦ ':''}${formatMove(move,layout)}へ${move.placements.length}枚<span>${move.placements.map(v=>`[${v.a}｜${v.b}]`).join(' → ')} · +${move.placements.reduce((n,v)=>n+v.a+v.b,0)}点</span></button>`).join('')}</div>`;
 }
 function actionPanel() {

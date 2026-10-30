@@ -80,7 +80,7 @@ test('new bidding round restores exchanges for BOTH players',()=>{
   dispatch(g,{type:'passAttach'});
   dispatch(g,{type:'passAttach'});
   assert.equal(g.phase,'adjustment');
-  assert.deepEqual(g.bidExchanged,[true,false]);
+  assert.deepEqual(g.bidExchanged,[false,false], 'the completed table resets the next auction rights');
   dispatch(g,{type:'adjust',choice:'draw'});
   dispatch(g,{type:'adjust',choice:'draw'});
   assert.equal(g.phase,'opening');

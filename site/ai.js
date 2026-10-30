@@ -1,4 +1,4 @@
-import { handPairs, isStronger, allAttachmentMoves, getTile, tilePips, tileKey, attachmentMoves, totalScore } from './engine.js?v=supreme-both-20261030d';
+import { handPairs, isStronger, allAttachmentMoves, getTile, tilePips, tileKey, attachmentMoves, totalScore } from './engine.js?v=bid-exchange-20261030e';
 
 
 /** An intentionally readable starter opponent, not an optimal solver. */

@@ -153,3 +153,28 @@ test('a non-Supreme double pair remains restricted to the first chosen side',()=
   g.current=0;
   assert.equal(attachmentMoves(g,[find('0-5')[0]]).filter(m=>m.portKey==='root-right').length,0);
 });
+
+
+test('2-2 spinner exposes three independent 2 endpoints for a 2-4 tile',()=>{
+  const {g,find,play}=setup({left:'0-2',right:'4-6',leftFlip:true,rightFlip:false});
+  assert.equal(boardPorts(g.board)[0].pip,2);
+  const doubled=play(['2-2'],m=>m.portKey==='root-left');
+  const doubleId=doubled.placements[0].id;
+  const ports=boardPorts(g.board);
+  assert.deepEqual(ports.map(p=>p.pip),[2,2,2]);
+  assert.equal(new Set(ports.map(p=>p.key)).size,3);
+  const id=find('2-4')[0];
+  const candidates=attachmentMoves(g,[id],0);
+  assert.equal(candidates.length,3);
+  assert.deepEqual(new Set(candidates.map(m=>m.portKey)),new Set(ports.map(p=>p.key)));
+  const chosen=candidates.find(m=>m.portKey===`tile-${doubleId}-2`);
+  assert.ok(chosen);
+  g.current=0;
+  dispatch(g,{type:'attach',ids:[id],moveKey:chosen.key});
+  assert.equal(boardPorts(g.board).filter(p=>p.pip===2).length,2,
+    'the other two arms of a 2-2 spinner must remain open after a 2 is attached');
+  g.current=0;
+  const other=find('2-5')[0];
+  assert.equal(attachmentMoves(g,[other],0).length,2,
+    '2-5 can still use either untouched double arm after 2-4 was played');
+});

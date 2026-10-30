@@ -68,7 +68,7 @@ test('exchange selection is capped by remaining stock, and cancel restores bid s
   assert.equal(game.stock.length,0);
   assert.equal(game.final,true);
   assert.equal(game.current,0);
-  assert.match(app.innerHTML,/最終局/);
+  assert.match(app.innerHTML,/山札なし/);
 });
 
 test('inter-round panel has no skip action, and help explains mandatory adjustment',()=>{

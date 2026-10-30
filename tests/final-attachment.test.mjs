@@ -33,7 +33,7 @@ test('exhausted-stock raise pass starts alternating attachments rather than elim
   put(g,id('2-5'),5);
   assert.equal(g.current,1,'declining bidder must return to play');
   assert.equal(g.phase,'attachment');
-  assert.equal(g.board.items.length,5);
+  assert.equal(g.board.items.length,4); // two opening tiles and two attachments
   assert.equal(g.hands[1].includes(id('5-5')),true);
 });
 test('final attachment pass never eliminates a player, and a later attachment resets consecutive passes',()=>{

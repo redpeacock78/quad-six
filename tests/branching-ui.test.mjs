@@ -239,3 +239,46 @@ test('an unplayable pair explicitly shows open values instead of hiding the reas
   assert.match(app.innerHTML,/同じ枝へ連続接続/);
   assert.match(app.innerHTML,/選んだ2枚の接続先がない/);
 });
+
+test('2-2 spinner lets the UI attach a matching tile to each of its three open 2 endpoints',()=>{
+  for(let chosenPort=0;chosenPort<3;chosenPort++){
+    const {app,ctx,click}=fixture();
+    const staged=runInContext(`(() => {
+      start('local','single');handoff=false;
+      const find=k=>game.tiles.filter(t=>tileKey(t)===k).map(t=>t.id);
+      game.current=0;game.hands[0]=game.tiles.map(t=>t.id);game.hands[1]=[];
+      dispatch(game,{type:'open',ids:[find('0-2')[0],find('4-6')[0]],flips:[true,false]});
+      game.current=0;game.phase='attachment';
+      const doubleId=find('2-2')[0];
+      const doubleMove=attachmentMoves(game,[doubleId]).find(m=>m.portKey==='root-left');
+      if(!doubleMove)throw Error('cannot attach initial 2-2 spinner');
+      dispatch(game,{type:'attach',ids:[doubleId],moveKey:doubleMove.key});
+      game.current=0;game.phase='attachment';
+      resetTurnSelection();render();
+      const tileId=find('2-4')[0];
+      return {tileId,keys:boardPorts(game.board).map(p=>p.key)};
+    })()`,ctx);
+    assert.equal(staged.keys.length,3);
+    click('select',{id:String(staged.tileId)});
+    const choices=runInContext(`attachmentMoves(game,[${staged.tileId}]).map(m=>({key:m.key,portKey:m.portKey}))`,ctx);
+    assert.equal(choices.length,3);
+    assert.equal((app.innerHTML.match(/data-action="choose-attachment"/g)||[]).length,3);
+    assert.ok(choices.every(m=>staged.keys.includes(m.portKey)));
+    assert.match(app.innerHTML,/data-action="attach" disabled/);
+    const selected=choices.find(m=>m.portKey===staged.keys[chosenPort]);
+    assert.ok(selected);
+    click('choose-attachment',{key:selected.key});
+    assert.match(app.innerHTML,/move-option chosen/);
+    click('attach');
+    const after=runInContext(`({
+      inHand:game.hands[0].includes(${staged.tileId}),
+      ports:boardPorts(game.board).map(p=>({key:p.key,pip:p.pip}))
+    })`,ctx);
+    assert.equal(after.inHand,false,'chosen tile must be consumed');
+    assert.equal(after.ports.length,3,'two other arms plus the new 4 end remain open');
+    assert.equal(after.ports.filter(p=>p.pip===2).length,2);
+    assert.equal(after.ports.filter(p=>p.pip===4).length,1);
+    assert.ok(!after.ports.some(p=>p.key===staged.keys[chosenPort]),
+      'only the selected 2 arm must be closed');
+  }
+});

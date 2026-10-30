@@ -225,3 +225,17 @@ test('Supreme opening keeps the right root visible and selectable after attachin
   assert.equal(runInContext('game.board.items.length',ctx),4);
   assert.equal(runInContext('game.board.chosenSide',ctx),'supreme');
 });
+
+
+test('an unplayable pair explicitly shows open values instead of hiding the reason',()=>{
+  const {app,ctx}=fixture();
+  runInContext(`
+    game.board.ports=[{key:'root-left',owner:game.board.items[0].id,pip:1,side:'left',direction:'left',slot:0,root:true}];
+    const two=game.tiles.find(t=>tileKey(t)==='2-2').id;
+    const twoFour=game.tiles.find(t=>tileKey(t)==='2-4').id;
+    selected=[two,twoFour];render();
+  `,ctx);
+  assert.match(app.innerHTML,/現在の開放数字：1/);
+  assert.match(app.innerHTML,/同じ枝へ連続接続/);
+  assert.match(app.innerHTML,/選んだ2枚の接続先がない/);
+});

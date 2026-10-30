@@ -10,6 +10,7 @@ let selectedFormat = 'single';
 let cpuTimer = null;
 let selected = [];
 let selectedMoveKey = null;
+let biddingExchangeMode = false;
 let flipped = {};
 let helpOpen = false;
 let handoff = false;
@@ -97,6 +98,19 @@ function actionPanel() {
   const isCPU = !isHumanTurn();
   if (isCPU) return `<div class="help-text">CPUが次の一手を考えているよ…</div>`;
   if (game.phase === 'opening') {
+    const exchangeAvailable=!game.final&&!game.bidExchanged?.[game.current]&&game.stock.length>0;
+    const maxExchange=Math.min(game.hands[game.current].length,game.stock.length);
+    if (biddingExchangeMode && exchangeAvailable) {
+      const ready=selected.length>=1 && selected.length<=maxExchange;
+      return `<div class="action-head"><strong>競り中の手札交換</strong><span class="small-label">1平場に1回</span></div>
+        <p class="help-text">手札の1〜全枚数を公開除外し、山札から同数補充するよ · 交換後も自分の競り手番が続く · 山札残り${game.stock.length}枚</p>
+        <div class="action-buttons adjustment-actions">
+          <button class="button primary" data-action="bid-exchange" ${ready?'':'disabled'}>${ready?`選んだ${selected.length}枚を競り中に交換`:'交換する牌を選ぶ'} ↗</button>
+          <button class="button" data-action="select-all-exchange" ${maxExchange?'':'disabled'}>${maxExchange===game.hands[game.current].length?`手札を全選択（${maxExchange}枚）`:`最大${maxExchange}枚を選択`}</button>
+          <button class="button quiet" data-action="opening-exchange-mode">交換をやめて競りに戻る</button>
+          ${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}
+        </div>`;
+    }
     const ready = selected.length === 2;
     const role = ready ? roleOf(game,selected) : null;
     const allowed = role && isStronger(role, game.openingRole);
@@ -106,6 +120,7 @@ function actionPanel() {
       ${role ? `<div class="role-preview"><span>選択した役<br><strong>${safe(role.name)}</strong></span><span>役点 +${role.points} / ピップ +${selected.reduce((s,id)=>s+tilePips(getTile(game,id)),0)} ${!allowed?'<br>※ レイズ不可':''}</span></div>` : ''}
       <div class="action-buttons"><button class="button primary" data-action="open" ${!ready||!allowed?'disabled':''}>${game.board?'この役でレイズ':'役を場に出す'} ↗</button>
       ${(game.board || game.final) ? `<button class="button quiet" data-action="passOpen">${game.final?'パスして脱落':'レイズを見送る'}</button>` : ''}
+      ${exchangeAvailable?'<button class="button" data-action="opening-exchange-mode">競り中に手札交換（残り1回）</button>':game.bidExchanged?.[game.current]?'<span class="help-text">この平場の競り中交換は使用済み</span>':''}
       ${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
   if (game.phase === 'attachment') {
@@ -120,12 +135,12 @@ function actionPanel() {
     const maxExchange = Math.min(game.hands[game.current].length, game.stock.length);
     const ready = selected.length >= 1 && selected.length <= maxExchange;
     return `<div class="action-head"><strong>手札調整</strong><span class="small-label">交換 / 補充</span></div>
-      <p class="help-text">ポーカー式に好きな枚数をまとめて公開交換できるよ（手札全部もOK） · 交換牌は山札へ戻さず公開除外 · 山札残り${game.stock.length}枚</p>
+      <p class="help-text">1枚ドローか、1〜手札全部の公開交換が必須 · 交換牌は山札へ戻さず公開除外 · 山札残り${game.stock.length}枚</p>
       <div class="action-buttons adjustment-actions">
       <button class="button primary" data-action="adjust-exchange" ${ready?'':'disabled'}>${ready?`選んだ${selected.length}枚を交換`:'交換する牌を選ぶ'} ↗</button>
       <button class="button" data-action="select-all-exchange" ${maxExchange?'':'disabled'}>${maxExchange === game.hands[game.current].length ? `手札を全選択（${maxExchange}枚）` : `最大${maxExchange}枚を選択`}</button>
       <button class="button quiet" data-action="adjust-draw" ${game.stock.length?'':'disabled'}>1枚ドロー</button>
-      <button class="button quiet" data-action="adjust-none">何もしない</button>
+       
       ${selected.length?'<button class="button quiet" data-action="clear">選び直す</button>':''}</div>`;
   }
   return '';
@@ -306,7 +321,7 @@ function gameMarkup() {
     ${finished && inspectFinalBoard?`<div class="panel panel-pad board-review-toolbar"><div><span class="eyebrow">FINAL TABLE · ${currentRoundName()} · 第${match.gameNumber}ゲーム</span><strong>終局時の盤面を確認中</strong></div><button class="button primary" data-action="back-to-result">← 精算結果に戻る</button></div>`:''}
     <div class="panel panel-pad statusbar"><div class="statusbar-left"><span class="pill ${game.final?'final-tag':''}">${game.final?`${currentRoundName()} · 最終出牌`:`${currentRoundName()} · 第${game.round}平場`}</span><div class="phase-label">${phaseLabel()}</div><span class="minor">${finished?'最終盤面を表示中':game.final?'山札なし・パスで脱落':'交互手番制'}</span></div><div class="turn-indicator"><i class="turn-dot ${game.current===1?'cpu':''}"></i>${finished?'ゲーム終了':`${nameOf(game.current)}の番`}</div></div>
     <section class="playmat"><div class="mat-heading"><div><span class="eyebrow">THE TABLE</span><h2>${game.openingRole?`平場役 · ${safe(game.openingRole.name)}`:finished?'最終盤面 · 場に牌なし':'最初の役を待っています'}</h2></div><div class="mat-side-info">${game.board?`${game.board.items.length}枚が場にある`:finished?'場に残った牌なし':'役は2枚で出す'}<br>${game.final?'最終出牌':'役は天九 · 接続はドミノ'}</div></div>${opponentHandMarkup(opponent)}<div class="board-holder" id="board-holder">${boardMarkup()}</div><div class="mat-footer"><span>開放端 <b>${ports.length}か所</b></span><span>${game.openingRole?.tier==='supreme'?'至尊：左右両側の起点が有効':'同じ数字の枝に接続 · 盤面の位置と端点番号で選択'}</span><span>数字 <b>${ports.map(p=>p.pip).join('・')||'—'}</b></span></div></section>
-    <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / ${game.phase==='adjustment'?Math.min(game.hands[current].length,game.stock.length):2}`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
+    <section class="panel hand-panel"><div class="panel-heading"><div><span class="eyebrow">YOUR HAND</span><h2>${nameOf(current)}の${finished?'残り手札':'手札'} ${game.hands[current].length}枚</h2></div><span class="pill">${finished?'終局':`選択 ${selected.length} / ${game.phase==='adjustment'||(game.phase==='opening'&&biddingExchangeMode)?Math.min(game.hands[current].length,game.stock.length):2}`}</span></div>${hand}<div class="action-area">${finished?`<div class="board-review-actions"><span class="help-text">ゲーム終了時点の盤面です。残った相手の手牌は裏向きで表示しています。</span><button class="button primary" data-action="back-to-result">精算結果に戻る →</button></div>`:show?actionPanel():`<div class="help-text">${handoff?'端末を次のプレイヤーへ渡してね':'CPUが考えています…'}</div>`}</div></section>
    </div>${sideMarkup()}</section>`;
 }
 function headerMarkup() {
@@ -318,14 +333,14 @@ function homeMarkup(){
 }
 function helpMarkup() {
   const examples = MARTIAL.map(([name, a, b]) => `<tr><td>${name}</td><td>[${a.split('-').join('｜')}] + [${b.split('-').join('｜')}]</td></tr>`).join('');
-  return `<div class="overlay" role="presentation" data-action="dismiss-help"><div class="modal" role="dialog" aria-modal="true" aria-label="ルールブック"><span class="eyebrow">HOW TO PLAY · VER 0.5</span><h2>賽棋のあそびかた</h2><p>2人に9枚ずつ配ってスタート · 役を作って場に出し、その後は数字を繋ぐ · 手札をなくすか山札が尽きたら精算するよ</p>
+  return `<div class="overlay" role="presentation" data-action="dismiss-help"><div class="modal" role="dialog" aria-modal="true" aria-label="ルールブック"><span class="eyebrow">HOW TO PLAY · VER 0.6</span><h2>賽棋のあそびかた</h2><p>2人に9枚ずつ配ってスタート · 役を作って場に出し、その後は数字を繋ぐ · 手札をなくすか山札が尽きたら精算するよ</p>
   <h3>対局形式と持ち点</h3><p>一局戦は1ゲーム。東風戦は東1〜東4局、半荘戦は東1〜東4局・南1〜南4局。親連荘では同じ局名のまま本場数が増えるよ。250点ずつ開始し、各ゲームの得点差を持ち点間で移動するよ。最初の親はランダム。親が早アガリしたら同じ親番を連荘し、本場が1増えるよ。子が早アガリしたり山枯らしで終了した場合は親が交代して本場は0に戻るよ。連荘分はゲーム数が増えるよ。単発の一局戦では連荘・本場点なし。飛び終了なし。</p>
-  <h3>① 平場：天九</h3><p>先攻が2枚で役を出し、相手はより強い役でレイズできるよ · レイズされた牌は公開除外されるけど、得点は残る · レイズが終わったら最後の役を起点に付札へ進むよ · レイズ点は最後のレイズ者が総取りだよ</p>
+  <h3>① 平場：天九</h3><p>先攻が2枚で役を出し、相手はより強い役でレイズできるよ · 各自1平場に1回、競り中に手札1〜全枚数を公開交換でき、交換後もその手番で出牌・見送りができるよ · レイズされた牌は公開除外されるけど、得点は残る · レイズが終わったら最後の役を起点に付札へ進むよ · レイズ点は最後のレイズ者が総取りだよ</p>
   <table class="mini-table"><tr><th>階級</th><th>役</th><th>役点</th></tr><tr><td>最高</td><td>至尊 [6｜6] + [0｜0]</td><td>20</td></tr><tr><td>上</td><td>文牌：同じ牌2枚</td><td>15</td></tr><tr><td>中</td><td>武牌：次の指定9組</td><td>10</td></tr><tr><td>下</td><td>雑：その他の2枚</td><td>5</td></tr></table>
   <h3>武牌9種の役表</h3><table class="mini-table"><tr><th>役</th><th>2枚組</th></tr>${examples}</table>
   <p class="footnote">文牌は原則ピップ合計で比較するよ · ただし [0｜0] の対子だけは [6｜6] の対子に勝つ特例があるよ · 雑同士のレイズは不可としているよ</p>
   <h3>② 付札：ドミノ</h3><p>最初の付札で左右どちらかの起点を選ぶよ · その後の通常付札は選んだ側の枝だけに接続（反対側の起点は閉じる） · ただし平場役が至尊 [6｜6]＋[0｜0] の場合は左右の起点を閉じず、両側から付札を続けられるよ · 1手で1枚か2枚を同じ枝に連続接続するよ · ゾロ目のダブル牌を置くと縦置きになり、接続した方向以外の3方向が開放されるよ · 枝は全部独立して伸ばせる · 至尊 [0｜0]＋[6｜6] だけは例外として数字0と6の2つの開放端へ同時に付札できるよ</p>
-  <h3>③ パスと局の終了</h3><p>通常の付札でパスすると山札から1枚引くよ · 両者が連続パスしたら場の牌をすべて公開除外し、第N平場とレイズ数をリセットするよ（麻雀式の東N局・南N局とは別） · 局間は1枚ドロー / 手札から任意枚数の公開交換 / 何もしない、から各自1回選べるよ · 交換は手札全部までOK（山札の残数が上限） · 除外した牌は山札に戻さず同数を補充するよ</p>
+  <h3>③ パスと局の終了</h3><p>通常の付札でパスすると山札から1枚引くよ · 両者が連続パスしたら場の牌をすべて公開除外し、第N平場とレイズ数をリセットするよ（麻雀式の東N局・南N局とは別） · 局間は1枚ドローまたは手札1〜全枚数の公開交換が必須だよ · 交換は手札全部までOK（山札の残数が上限） · 除外した牌は山札に戻さず同数を補充するよ</p>
   <h3>④ 終局と得点</h3><p>手札0枚なら早アガリで即終了、山札0枚なら最後の付札を続けて精算するよ · 最終付札中のパスは脱落になるよ</p>
   <table class="mini-table"><tr><th>項目</th><th>計算</th></tr><tr><td>役とピップ</td><td>出したときに加算</td></tr><tr><td>レイズ点</td><td>平場のレイズ回数×3点を最終レイズ者へ</td></tr><tr><td>本場点</td><td>東風・半荘のみ。早アガリした側に5×現在の本場数</td></tr><tr><td>早アガリ</td><td>+15点</td></tr><tr><td>山を最後に引いた人</td><td>−15点（強制補充を除く）</td></tr><tr><td>残った手札</td><td>ピップ合計÷2、切り上げで減点</td></tr></table>
   <p class="footnote">実装上の暫定裁定：平場の2枚は中央に並べ、外側に見えている数字を左右の開放端にするよ · 平場の見送り側が最初の付札を行うよ · 雑同士のレイズは不可 · 付札の至尊には役点は追加しないよ · 各ゲーム内の平場先攻は局ごとに交代するよ</p>
@@ -358,7 +373,7 @@ function notify(message) {
   toastTimer = setTimeout(() => { toastMessage = ''; render(); }, 3100);
   render();
 }
-function resetTurnSelection() { selected = []; selectedMoveKey = null; flipped = {}; }
+function resetTurnSelection() { selected = []; selectedMoveKey = null; flipped = {}; biddingExchangeMode = false; }
 function goHome(confirmExit = true) {
   if (confirmExit && game && game.phase !== 'finished' && !window.confirm('現在の対局を終了してタイトルへ戻る？ 進行状況は失われます。')) return;
   clearTimeout(cpuTimer);
@@ -468,15 +483,25 @@ $app.addEventListener('click', event => {
   if (!game || game.phase==='finished' || helpOpen || handoff || !isHumanTurn()) return;
   const id = Number(target.dataset.id);
   if (action==='select') {
-    const max = game.phase === 'adjustment' ? Math.min(game.hands[game.current].length, game.stock.length) : 2;
+    const multi=game.phase==='adjustment'||(game.phase==='opening'&&biddingExchangeMode);
+    const max = multi ? Math.min(game.hands[game.current].length,game.stock.length) : 2;
     if (selected.includes(id)) selected=selected.filter(v=>v!==id);
     else if (selected.length<max) selected.push(id);
-    else if (game.phase !== 'adjustment') selected=[selected[1],id];
+    else if (!multi) selected=[selected[1],id];
     selectedMoveKey = null;
     render();return;
   }
   if (action==='flip') {flipped[id]=!flipped[id];render();return;}
-  if (action==='clear') {resetTurnSelection();render();return;}
+  if (action==='clear') {selected=[];selectedMoveKey=null;flipped={};render();return;}
+  if (action==='opening-exchange-mode' && game.phase==='opening') {
+    if(!biddingExchangeMode && (game.final||game.bidExchanged?.[game.current]||!game.stock.length))return;
+    biddingExchangeMode=!biddingExchangeMode;
+    selected=[];selectedMoveKey=null;flipped={};
+    render();return;
+  }
+  if (action==='bid-exchange' && game.phase==='opening' && biddingExchangeMode &&
+    selected.length && selected.length<=game.stock.length)
+    return run({type:'bidExchange',ids:[...selected]});
   if (action==='open') return run({type:'open',ids:[...selected],flips:selected.map(id=>Boolean(flipped[id]))});
   if (action==='passOpen') return run({type:'passOpen'});
   if (action==='choose-attachment') {
@@ -490,14 +515,14 @@ $app.addEventListener('click', event => {
     return run({type:'attach',ids:[...selected],moveKey:move.key});
   }
   if (action==='passAttach') return run({type:'passAttach'});
-  if (action==='select-all-exchange' && game.phase==='adjustment') {
+  if (action==='select-all-exchange' &&
+      (game.phase==='adjustment'||(game.phase==='opening'&&biddingExchangeMode))) {
     const max = Math.min(game.hands[game.current].length, game.stock.length);
     selected = game.hands[game.current].slice(0, max);
     selectedMoveKey = null;
     render();return;
   }
   if (action==='adjust-draw') return run({type:'adjust',choice:'draw'});
-  if (action==='adjust-none') return run({type:'adjust',choice:'none'});
   if (action==='adjust-exchange' && selected.length && selected.length<=game.stock.length) return run({type:'adjust',choice:'exchange',ids:[...selected]});
 });
 render();
